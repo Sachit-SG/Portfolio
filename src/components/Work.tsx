@@ -1,0 +1,97 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
+import { projects } from "@/lib/projects";
+import ProjectCard from "./ProjectCard";
+import LineReveal from "./LineReveal";
+import Reveal from "./Reveal";
+
+gsap.registerPlugin(ScrollTrigger);
+
+export default function Work() {
+  const section = useRef<HTMLElement>(null);
+  const track = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const mm = gsap.matchMedia();
+    // Desktop only: pin the section and translate the track horizontally.
+    mm.add(
+      "(min-width: 1024px) and (prefers-reduced-motion: no-preference)",
+      () => {
+        const t = track.current;
+        const sec = section.current;
+        if (!t || !sec) return;
+        const distance = () => Math.max(0, t.scrollWidth - window.innerWidth + 80);
+        const tween = gsap.to(t, {
+          x: () => -distance(),
+          ease: "none",
+          scrollTrigger: {
+            trigger: sec,
+            start: "top top",
+            end: () => "+=" + distance(),
+            scrub: 1,
+            pin: true,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+          },
+        });
+        return () => {
+          tween.scrollTrigger?.kill();
+          tween.kill();
+        };
+      }
+    );
+    return () => mm.revert();
+  }, []);
+
+  // Cards rise + scale into place as the track first comes into view.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const ctx = gsap.context(() => {
+      gsap.from("[data-project-card]", {
+        opacity: 0,
+        y: 56,
+        scale: 0.96,
+        duration: 0.85,
+        ease: "power3.out",
+        stagger: 0.1,
+        scrollTrigger: { trigger: track.current, start: "top 90%", once: true },
+      });
+    }, section);
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <section
+      id="work"
+      ref={section}
+      className="relative py-24 text-text-paper lg:flex lg:h-screen lg:flex-col lg:justify-center lg:overflow-hidden lg:py-0"
+    >
+      <div className="mb-10 px-6 sm:px-10">
+        <Reveal>
+          <span className="inline-block w-fit rounded-full border border-border-paper px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-ultra">
+            Selected work
+          </span>
+        </Reveal>
+        <LineReveal
+          lines={["Built for production.", "Made to last."]}
+          className="mt-5 max-w-4xl text-5xl font-extrabold leading-[0.92] tracking-[-0.03em] sm:text-7xl"
+        />
+      </div>
+
+      <div className="lg:overflow-hidden">
+        <div
+          ref={track}
+          className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-4 will-change-transform sm:px-10 lg:overflow-x-visible lg:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {projects.map((p, i) => (
+            <ProjectCard key={p.slug} project={p} index={i} />
+          ))}
+          <div className="w-2 shrink-0 sm:w-10" aria-hidden />
+        </div>
+      </div>
+    </section>
+  );
+}
