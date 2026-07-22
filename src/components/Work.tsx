@@ -23,7 +23,11 @@ export default function Work() {
         const t = track.current;
         const sec = section.current;
         if (!t || !sec) return;
-        const distance = () => Math.max(0, t.scrollWidth - window.innerWidth + 80);
+        // Measure against the track's own container, not the window — the whole
+        // page sits in a 332px left inset for the rail, so window.innerWidth
+        // overstates the visible width and the track stops short.
+        const distance = () =>
+          Math.max(0, t.scrollWidth - (t.parentElement?.clientWidth ?? 0) + 40);
         const tween = gsap.to(t, {
           x: () => -distance(),
           ease: "none",
@@ -54,9 +58,9 @@ export default function Work() {
         opacity: 0,
         y: 56,
         scale: 0.96,
-        duration: 0.85,
+        duration: 0.5,
         ease: "power3.out",
-        stagger: 0.1,
+        stagger: 0.07,
         scrollTrigger: { trigger: track.current, start: "top 90%", once: true },
       });
     }, section);
@@ -77,14 +81,16 @@ export default function Work() {
         </Reveal>
         <LineReveal
           lines={["Built for production.", "Made to last."]}
-          className="mt-5 max-w-4xl text-5xl font-extrabold leading-[0.92] tracking-[-0.03em] sm:text-7xl"
+          className="font-display mt-5 max-w-4xl text-5xl font-medium leading-[0.92] tracking-[-0.015em] sm:text-7xl"
         />
       </div>
 
-      <div className="lg:overflow-hidden">
+      {/* min-h-0 is what lets flex-1 actually shrink here — without it the track
+          keeps its content height and overflows the pinned viewport. */}
+      <div className="lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:pb-10">
         <div
           ref={track}
-          className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-4 will-change-transform sm:px-10 lg:overflow-x-visible lg:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-4 will-change-transform sm:px-10 lg:h-full lg:overflow-x-visible lg:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {projects.map((p, i) => (
             <ProjectCard key={p.slug} project={p} index={i} />

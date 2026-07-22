@@ -1,0 +1,63 @@
+{
+  "source": "https://heynesh.com/",
+  "measured": "2026-07-22, computed styles from live DOM",
+  "design_system": {
+    "color": {
+      "background_primary": "#d5cfbe",
+      "surface_card_glass": "rgba(223,222,206,0.8)",
+      "surface_secondary": "#ebeada",
+      "dark_section": "#000000",
+      "text_primary": "#000000",
+      "text_on_dark": "#ffffff",
+      "text_muted": "#a6a6a6",
+      "accent": "#ffff23",
+      "note": "Background is a warm GREIGE, not white. Accent is pure electric yellow used on both fills and text. Dark sections are PURE black."
+    },
+    "typography": {
+      "family": "PP Neue Montreal (Book) — neo-grotesk",
+      "wordmark_span": "71.2px / 700",
+      "h1": "67.8px / 700 / lh 1.03",
+      "h2": "58.6px / 500 / lh 1.0",
+      "h4": "40.8px / 500",
+      "h3": "21.4px / 500",
+      "body_and_links": "12.8px / 400 / lh 1.6",
+      "scale_ratio_h1_to_body": "5.3x",
+      "critical_finding": "Mid-level headings are weight 500 (MEDIUM), not bold. Only the wordmark/h1 reach 700. Body and nav links are 12.8px — very small."
+    },
+    "shape": {
+      "radius_scale": ["7.2px", "8px", "10.6px", "19.6px"],
+      "pill": "65.8px",
+      "circle": "50%",
+      "note": "Small radii (~7-11px) plus pills. No large 24-28px card radii."
+    },
+    "elevation": {
+      "box_shadows_found": 0,
+      "note": "ZERO box-shadows site-wide. Depth comes from glass translucency, borders and the fixed blurred photo — never drop shadows."
+    },
+    "motion": {
+      "libraries": "GSAP 3.15 (ScrollTrigger, Flip, SplitText, DrawSVG, MotionPath) + Lenis 1.1.18 + Swiper 11",
+      "properties_animated": "scale, opacity, blur, yPercent, clipPath — never layout props",
+      "scrub_vs_oneshot": "5 scrubbed vs 3 toggleActions — scrub is rationed",
+      "trigger_starts": ["top 90%", "top 92%", "top 80%", "top top"],
+      "eases": ["power2.out", "power3.out", "expo.out", "back.out", "none"]
+    }
+  },
+  "design_style": {
+    "mood": "Confident, editorial, warm-neutral. Craft-forward but not precious.",
+    "personality": "Design-engineer showing off control — big type, restrained surfaces, one loud accent.",
+    "composition": "Giant display type owns hierarchy; everything else is deliberately quiet and small.",
+    "whitespace": "Generous vertical rhythm; content sits on a warm ground rather than white.",
+    "ornamentation": "Low. One accent colour, no shadows, no gradients-as-decoration."
+  },
+  "visual_effects": {
+    "glassmorphism": { "enabled": true, "count": 33, "blur": "15-20px", "tint_opacity": [0.3, 0.8] },
+    "fixed_blurred_photo_backdrop": { "enabled": true, "note": "profile-img-wrap is position:fixed z-10; GSAP scrubs blur onto it so it becomes ambient texture" },
+    "pinned_horizontal_scroll": { "enabled": true, "note": "projects section 4 viewports tall; .work-sticky track 4138px wide in 1280px window, overflow hidden, translateX scrubbed" },
+    "svg_path_draw": { "enabled": true, "note": "journey connector draws on scroll" },
+    "webgl_or_3d": { "enabled": false },
+    "particles": { "enabled": false },
+    "cursor_effects": { "enabled": false },
+    "effect_intensity": "medium-high",
+    "performance_tier": "light — transform/opacity/filter only"
+  }
+}

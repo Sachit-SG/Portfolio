@@ -1,10 +1,23 @@
 import type { Metadata } from "next";
-import { Archivo, Geist_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const archivo = Archivo({
-  variable: "--font-archivo",
-  subsets: ["latin"],
+// Display face — the wordmark and section headlines only. Clash Display's
+// axis stops at 700, so nothing may ask it for 800/900 (see globals.css).
+const clashDisplay = localFont({
+  src: "./fonts/ClashDisplay-Variable.woff2",
+  variable: "--font-clash",
+  weight: "200 700",
+  display: "swap",
+});
+
+// Text face — everything else. Neutral by design; it should disappear.
+const switzer = localFont({
+  src: "./fonts/Switzer-Variable.woff2",
+  variable: "--font-switzer",
+  weight: "100 900",
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -26,7 +39,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${archivo.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${clashDisplay.variable} ${switzer.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-text-paper">
         {children}

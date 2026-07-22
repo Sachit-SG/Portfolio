@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "lenis/dist/lenis.css";
 
 /*
   Palette — one WARM family: cream paper + espresso ink + orange accent.
@@ -6,26 +7,39 @@
   statement band), never the default — that's what makes the dark feel intentional.
 */
 :root {
+  /* Every value below is contrast-measured — see the color-knowledge memory.
+     Rule from Open Color: bright reds (#ff6b6b etc.) FAIL AA behind white body
+     text. Only the deep red may carry white text. */
+
   /* base surfaces */
-  --paper: #f5f1e8;        /* warm cream — the dominant surface */
-  --paper-card: #ece5d6;   /* raised card on paper */
-  --ink: #17130f;          /* WARM espresso near-black (was cool #131318) */
-  --ink-card: #221d17;     /* raised card on ink */
+  --paper: #f6ece9;        /* red-tinted off-white — the light sections */
+  --paper-card: #f4e8e5;   /* raised card on paper */
+  --ink: #140a0c;          /* near-black with red bias, so red glows read */
+  --ink-card: #241416;     /* raised card on ink */
 
   /* text */
-  --text-paper: #1c1712;   /* warm near-black on paper */
-  --text-ink: #f5f1e8;     /* cream on ink */
-  --muted-paper: #6f6a5f;  /* warm grey */
-  --muted-ink: #a79e90;    /* warm grey */
+  --text-paper: #1a1011;   /* 17.2:1 on paper */
+  --text-ink: #fff5f5;     /* 18.2:1 on ink */
+  --muted-paper: #665557;  /* 4.90:1 against the WORST ambient frame (paper +
+                              photo@0.06 + light@0.07). The old #6f5f60 measured
+                              5.58 against the flat token but only 4.40 against
+                              the real composited background — it was failing. */
+  --muted-ink: #b09a9c;    /* 7.37:1 on ink */
 
-  /* accent — single orange family */
-  --ultra: #c63d0e;        /* deep burnt orange — text/small elements on paper */
-  --ultra-ink: #ff8a4d;    /* warm bright orange — on ink / dark sections */
-  --signal: #fb5a18;       /* vivid orange — fills, CTAs, live markers */
+  /* accent — single red family, split by role */
+  --ultra: #ad2121;        /* deep red — SMALL text on light + CTA fills.
+                              4.87:1 on the worst ambient frame, 5.42:1 on a
+                              card, 6.96:1 for white on it. #c92a2a dropped to
+                              3.82 once the ambient light was accounted for. */
+  --ultra-bright: #e03131; /* brighter red — LARGE display text on light only. 3.77:1 on
+                              paper-card: clears AA for 24px+/18.66px-bold, FAILS for body.
+                              Never use this on small text — use --ultra there. */
+  --ultra-ink: #ff6b6b;    /* bright red — text/marks on DARK only (7.02:1). Never behind white text. */
+  --signal: #ad2121;       /* fills that carry white text (6.96:1) */
 
   /* borders */
-  --border-paper: rgba(28, 23, 18, 0.13);
-  --border-ink: rgba(245, 241, 232, 0.13);
+  --border-paper: rgba(26, 16, 17, 0.13);
+  --border-ink: rgba(255, 245, 245, 0.14);
 }
 
 @theme inline {
@@ -38,11 +52,16 @@
   --color-muted-paper: var(--muted-paper);
   --color-muted-ink: var(--muted-ink);
   --color-ultra: var(--ultra);
+  --color-ultra-bright: var(--ultra-bright);
   --color-ultra-ink: var(--ultra-ink);
   --color-signal: var(--signal);
   --color-border-paper: var(--border-paper);
   --color-border-ink: var(--border-ink);
-  --font-sans: var(--font-archivo);
+  /* Two-face system: Clash Display carries identity on the big type, Switzer
+     carries everything readable. Clash's weight axis ends at 700 — asking it
+     for 800/900 gets a synthetic-bold fake that smears at display size. */
+  --font-sans: var(--font-switzer);
+  --font-display: var(--font-clash);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -74,6 +93,74 @@ body {
 /* Visible by default — only hide-then-reveal when motion is allowed, so content
    never strands invisible if the animation can't run. */
 .anim-rise { opacity: 1; }
+
+/* Card icons re-draw their stroke on hover. Gated on no-preference so reduced
+   motion gets the plain icon with no dash handling at all. 350ms total incl.
+   the 120ms stagger tail — inside the icon-transition band. */
+@keyframes icon-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-icon-draw] svg > * {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0; /* fully drawn at rest — never hidden */
+  }
+  [data-icon-draw].is-drawing svg > * {
+    animation: icon-draw 0.35s ease-out both;
+  }
+  [data-icon-draw].is-drawing svg > *:nth-child(2) { animation-delay: 0.06s; }
+  [data-icon-draw].is-drawing svg > *:nth-child(3) { animation-delay: 0.12s; }
+  [data-icon-draw].is-drawing svg > *:nth-child(4) { animation-delay: 0.18s; }
+}
+
+/* Skill charts draw themselves in, then breathe.
+   pathLength="1" normalises every arc, so --draw (the filled fraction) is the
+   only per-element value needed. Resting state is FULLY DRAWN — if these rules
+   never apply, the chart still reads correctly rather than showing blank. */
+@keyframes chart-draw {
+  from { stroke-dashoffset: var(--draw, 1); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes chart-pulse {
+  0%, 100% { opacity: 0.72; }
+  50%      { opacity: 1; }
+}
+/* Resting state, ALWAYS applied: fully drawn. */
+[data-skill-arc],
+[data-skill-line-graph] {
+  stroke-dashoffset: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* No animation-delay and no fill-mode, deliberately. `both` holds the
+     undrawn "from" state, so a stalled animation clock left every chart
+     permanently blank. The cascade comes from varying DURATION (--dur)
+     instead: all arcs start together, they just finish at different times.
+     If these animations never run, the base rule above still shows the
+     chart correctly. */
+  [data-skill-arc],
+  [data-skill-line-graph] {
+    animation:
+      chart-draw var(--dur, 1.1s) cubic-bezier(0.16, 1, 0.3, 1),
+      chart-pulse 4.5s ease-in-out 1.6s infinite;
+  }
+  /* Applied by JS once the draw has had time to finish. A RUNNING animation
+     renders its own from-state even with no fill-mode, so if the clock is
+     stalled the chart shows blank data forever. This drops the draw (keeping
+     the pulse) and lets the drawn base state through. */
+  [data-skill-arc].is-drawn,
+  [data-skill-line-graph].is-drawn {
+    animation: chart-pulse 4.5s ease-in-out infinite;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The side rail starts hidden ONLY when it will be animated in. Under reduced
+   motion (or if the scroll timeline never builds) it stays visible by default,
+   so navigation can never strand invisible. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-rail-root] { opacity: 0; }
+}
 @media (prefers-reduced-motion: no-preference) {
   .anim-rise { opacity: 0; animation: rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   .anim-clip { animation: rise-clip 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards; }

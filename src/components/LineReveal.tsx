@@ -29,9 +29,9 @@ export default function LineReveal({
     const ctx = gsap.context(() => {
       gsap.from("[data-line-inner]", {
         yPercent: 112,
-        duration: 0.95,
+        duration: 0.7,
         ease: "power3.out",
-        stagger: 0.09,
+        stagger: 0.08,
         scrollTrigger: { trigger: ref.current, start, once: true },
       });
     }, ref);

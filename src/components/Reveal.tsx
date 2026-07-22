@@ -14,7 +14,7 @@ export default function Reveal({
   children,
   className,
   y = 34,
-  stagger = 0.09,
+  stagger = 0.07,
   start = "top 88%",
 }: {
   children: React.ReactNode;
@@ -33,7 +33,7 @@ export default function Reveal({
       gsap.from(items, {
         opacity: 0,
         y,
-        duration: 0.8,
+        duration: 0.45,
         ease: "power3.out",
         stagger,
         scrollTrigger: { trigger: ref.current, start, once: true },

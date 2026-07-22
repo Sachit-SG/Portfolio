@@ -8,19 +8,19 @@ export default function Contact() {
       className="mt-24 flex flex-col items-start rounded-t-[40px] bg-ink px-6 py-32 text-text-ink sm:px-10"
     >
       <Reveal>
-        <span className="mb-8 inline-block w-fit rounded-full border border-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-signal">
+        <span className="mb-8 inline-block w-fit rounded-full border border-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-ultra-ink">
           Contact
         </span>
       </Reveal>
 
       <a
         href="mailto:sachitghimire2@gmail.com"
-        className="group block transition-colors hover:text-signal"
+        className="group block transition-colors hover:text-ultra-ink"
       >
         <LineReveal
           as="p"
           lines={["Let's talk ↗"]}
-          className="text-[11vw] font-black leading-none tracking-[-0.03em] sm:text-[7vw]"
+          className="font-display text-[11vw] font-bold leading-none tracking-[-0.015em] sm:text-[7vw]"
         />
       </a>
 
@@ -34,7 +34,7 @@ export default function Contact() {
             href="https://www.linkedin.com/"
             target="_blank"
             rel="noopener noreferrer"
-            className="transition-colors hover:text-signal"
+            className="transition-colors hover:text-ultra-ink"
           >
             LinkedIn
           </a>
@@ -42,13 +42,13 @@ export default function Contact() {
             href="https://github.com/"
             target="_blank"
             rel="noopener noreferrer"
-            className="transition-colors hover:text-signal"
+            className="transition-colors hover:text-ultra-ink"
           >
             GitHub
           </a>
           <a
             href="/sachit-ghimire-cv.pdf"
-            className="transition-colors hover:text-signal"
+            className="transition-colors hover:text-ultra-ink"
           >
             Resume
           </a>

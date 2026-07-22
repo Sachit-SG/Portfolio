@@ -15,10 +15,13 @@ export default function ProjectCard({
       target="_blank"
       rel="noopener noreferrer"
       data-project-card
-      className="group relative flex w-[80vw] shrink-0 snap-start flex-col overflow-hidden rounded-[28px] border border-border-paper bg-paper-card/70 backdrop-blur-[16px] transition-shadow hover:shadow-[0_18px_50px_-20px_rgba(28,23,18,0.35)] sm:w-[420px]"
+      className="group relative flex w-[80vw] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border-paper bg-paper-card/70 backdrop-blur-[16px] transition-colors hover:border-ultra/40 sm:w-[420px] lg:h-full lg:w-[460px]"
     >
-      {/* Mockup panel — real screenshot of the live site */}
-      <div className="relative aspect-[4/5] w-full overflow-hidden">
+      {/* Mockup panel — real screenshot of the live site.
+          Fixed ratio while the row scrolls natively; inside the pinned desktop
+          track the card is height-constrained, so the panel flexes instead —
+          otherwise the card overflows the pin container and gets clipped. */}
+      <div className="relative aspect-[4/5] w-full overflow-hidden lg:aspect-auto lg:min-h-0 lg:flex-1">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`/work/${project.slug}.jpg`}
@@ -43,7 +46,7 @@ export default function ProjectCard({
       {/* Body */}
       <div className="flex flex-1 flex-col gap-2.5 p-6">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-2xl font-extrabold tracking-[-0.02em] text-text-paper">
+          <h3 className="text-2xl font-semibold tracking-[-0.02em] text-text-paper">
             {project.name}
           </h3>
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-signal text-lg text-white transition-transform duration-300 group-hover:-translate-y-1 group-hover:translate-x-1">

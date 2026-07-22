@@ -5,6 +5,8 @@ import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import LineReveal from "./LineReveal";
 import Reveal from "./Reveal";
+import CardIcon from "./CardIcon";
+import { PenTool, Rocket, ShieldAlert } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -13,6 +15,7 @@ const timeline = [
     marker: "Before",
     period: "2 years of design",
     title: "Graphic & UI design",
+    icon: PenTool,
     detail:
       "Two years of design work before writing production code — the reason interfaces here get real attention, not just the APIs behind them.",
   },
@@ -20,6 +23,7 @@ const timeline = [
     marker: "2025",
     period: "Present · Lama Group",
     title: "Full Stack Developer",
+    icon: Rocket,
     detail:
       "Sole developer on a remote team working with a Texas-based fuel and convenience retailer. Staff portals, SSO across two codebases with signed JWTs, and secured internal APIs replacing manual HR lookups.",
   },
@@ -27,6 +31,7 @@ const timeline = [
     marker: "Today",
     period: "The lesson that stuck",
     title: "Broke production, then fixed the process",
+    icon: ShieldAlert,
     detail:
       "An auth migration shipped without its environment variables and took production down. I diagnosed it, reverted the merge, restored service — then wrote the checklist that stops it happening again.",
   },
@@ -44,7 +49,7 @@ export default function About() {
         gsap.from(card, {
           opacity: 0,
           y: 48,
-          duration: 0.85,
+          duration: 0.5,
           ease: "power3.out",
           scrollTrigger: { trigger: card, start: "top 88%" },
         });
@@ -61,11 +66,6 @@ export default function About() {
         </span>
       </Reveal>
 
-      <LineReveal
-        lines={["About &", "the path here."]}
-        className="mt-6 max-w-4xl text-5xl font-extrabold leading-[0.92] tracking-[-0.03em] sm:text-7xl"
-      />
-
       <div className="relative mt-20">
 
         <div className="flex flex-col gap-12 lg:gap-16">
@@ -73,7 +73,8 @@ export default function About() {
             <article
               key={item.title}
               data-milestone
-              className={`relative w-full max-w-xl rounded-[28px] border border-border-paper bg-paper-card/60 p-8 backdrop-blur-[20px] sm:p-10 ${
+              data-card
+              className={`group relative w-full max-w-3xl rounded-xl border border-border-paper bg-paper-card/60 p-10 backdrop-blur-[20px] sm:p-12 ${
                 i % 2 === 1 ? "lg:self-end" : "lg:self-start"
               }`}
             >
@@ -85,15 +86,18 @@ export default function About() {
                 }`}
               />
 
-              <span className="block text-5xl font-black leading-none tracking-[-0.03em] text-signal sm:text-6xl">
-                {item.marker}
-              </span>
+              <div className="flex items-start justify-between gap-4">
+                <span className="font-display block text-6xl font-bold leading-none tracking-[-0.03em] text-ultra-bright sm:text-7xl">
+                  {item.marker}
+                </span>
+                <CardIcon icon={item.icon} className="h-11 w-11 shrink-0" />
+              </div>
 
-              <h3 className="mt-5 text-2xl font-extrabold tracking-[-0.01em] sm:text-3xl">
+              <h3 className="mt-6 text-3xl font-semibold tracking-[-0.01em] sm:text-4xl">
                 {item.title}
               </h3>
 
-              <p className="mt-3 text-[15px] leading-relaxed text-muted-paper">
+              <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-paper">
                 {item.detail}
               </p>
 

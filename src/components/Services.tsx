@@ -48,7 +48,7 @@ export default function Services() {
         gsap.from(card, {
           opacity: 0,
           y: 40,
-          duration: 0.7,
+          duration: 0.5,
           ease: "power3.out",
           scrollTrigger: { trigger: card, start: "top 88%" },
         });
@@ -71,7 +71,7 @@ export default function Services() {
         </Reveal>
         <LineReveal
           lines={["What you get,", "if we work together."]}
-          className="mt-4 text-4xl font-extrabold leading-[1.0] tracking-[-0.02em] sm:text-6xl"
+          className="font-display mt-4 text-4xl font-medium leading-[1.0] tracking-[-0.005em] sm:text-6xl"
         />
         <Reveal>
           <p className="mt-6 text-muted-paper">
@@ -86,15 +86,15 @@ export default function Services() {
           <div
             key={s.title}
             data-service-card
-            className="flex flex-col gap-4 rounded-[28px] border border-border-paper bg-paper-card/70 p-9 backdrop-blur-[16px] transition-shadow hover:shadow-[0_18px_50px_-24px_rgba(28,23,18,0.35)] sm:p-11"
+            className="flex flex-col gap-4 rounded-xl border border-border-paper bg-paper-card/70 p-9 backdrop-blur-[16px] transition-colors hover:border-ultra/40 sm:p-11"
           >
-            <span className="text-4xl font-extrabold text-signal">
+            <span className="text-4xl font-semibold text-signal">
               0{i + 1}
             </span>
-            <h3 className="text-2xl font-extrabold tracking-[-0.01em] sm:text-3xl">
+            <h3 className="text-2xl font-semibold tracking-[-0.01em] sm:text-3xl">
               {s.title}
             </h3>
-            <p className="text-[15px] leading-relaxed text-muted-paper">
+            <p className="text-sm leading-relaxed text-muted-paper">
               {s.detail}
             </p>
             <p className="mt-1 font-mono text-xs text-ultra">{s.proof}</p>
