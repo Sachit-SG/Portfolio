@@ -17,7 +17,6 @@ gsap.registerPlugin(ScrollTrigger);
 
 const skills = [
   {
-    marker: "01",
     title: "Backend",
     icon: Database,
     detail:
@@ -25,7 +24,6 @@ const skills = [
     tags: ["Node.js", "Express", "PostgreSQL", "Prisma"],
   },
   {
-    marker: "02",
     title: "APIs & Auth",
     icon: ShieldCheck,
     detail:
@@ -33,7 +31,6 @@ const skills = [
     tags: ["REST APIs", "JWT / SSO", "Auth flows"],
   },
   {
-    marker: "03",
     title: "Frontend",
     icon: LayoutDashboard,
     detail:
@@ -41,7 +38,6 @@ const skills = [
     tags: ["Next.js", "React", "TypeScript", "Tailwind"],
   },
   {
-    marker: "04",
     title: "Platform & data",
     icon: Server,
     detail:
@@ -49,7 +45,6 @@ const skills = [
     tags: ["Vercel", "Supabase", "AWS S3", "Cron jobs"],
   },
   {
-    marker: "05",
     title: "Design",
     icon: PenTool,
     detail:
@@ -62,23 +57,66 @@ export default function Skills() {
   const scope = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const ctx = gsap.context(() => {
-      const path = scope.current?.querySelector<SVGPathElement>("[data-skill-line]");
-      if (path) {
-        const len = path.getTotalLength();
-        gsap.set(path, { strokeDasharray: len, strokeDashoffset: len });
-        gsap.to(path, {
-          strokeDashoffset: 0,
-          ease: "none",
-          scrollTrigger: {
-            trigger: scope.current,
-            start: "top 65%",
-            end: "bottom 85%",
-            scrub: 0.6,
-          },
-        });
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const root = scope.current;
+    if (!root) return;
+    const wrap = root.querySelector<HTMLElement>("[data-skill-line-wrap]");
+    const svg = root.querySelector<SVGSVGElement>("[data-skill-svg]");
+    const path = root.querySelector<SVGPathElement>("[data-skill-line]");
+    let len = 0;
+
+    // Build the path from the ACTUAL node dots, in 1:1 pixel space, so the line
+    // genuinely connects card→card in a smooth weave instead of a guessed curve
+    // stretched by preserveAspectRatio. Recomputed whenever the layout changes.
+    const buildLine = () => {
+      if (!wrap || !svg || !path) return;
+      const wr = wrap.getBoundingClientRect();
+      const nodes = Array.from(
+        wrap.querySelectorAll<HTMLElement>("[data-skill-node]")
+      );
+      if (nodes.length < 2 || wr.width === 0) return;
+      const pts = nodes.map((n) => {
+        const r = n.getBoundingClientRect();
+        return {
+          x: r.left + r.width / 2 - wr.left,
+          y: r.top + r.height / 2 - wr.top,
+        };
+      });
+      let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+      for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1];
+        const b = pts[i];
+        const my = (a.y + b.y) / 2; // vertical S between alternating-side nodes
+        d += ` C ${a.x.toFixed(1)} ${my.toFixed(1)}, ${b.x.toFixed(1)} ${my.toFixed(1)}, ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
       }
+      svg.setAttribute("viewBox", `0 0 ${wr.width} ${wr.height}`);
+      path.setAttribute("d", d);
+      len = path.getTotalLength();
+      path.style.strokeDasharray = String(len);
+      // Drawn at rest under reduced motion; hidden (draws on scroll) otherwise.
+      path.style.strokeDashoffset = reduce ? "0" : String(len);
+    };
+
+    buildLine();
+    const ro = new ResizeObserver(() => {
+      buildLine();
+      ScrollTrigger.refresh();
+    });
+    ro.observe(wrap ?? root);
+
+    const ctx = gsap.context(() => {
+      if (reduce) return;
+      // The line draws as the section scrolls. onUpdate reads `len` live, so a
+      // resize that rebuilds the path is picked up without recreating anything.
+      ScrollTrigger.create({
+        trigger: root,
+        start: "top 70%",
+        end: "bottom 80%",
+        scrub: 0.6,
+        onUpdate: (self) => {
+          if (path) path.style.strokeDashoffset = String(len * (1 - self.progress));
+        },
+      });
 
       gsap.utils.toArray<HTMLElement>("[data-skill-card]").forEach((card, i) => {
         gsap.from(card, {
@@ -89,36 +127,48 @@ export default function Skills() {
           ease: "power3.out",
           scrollTrigger: { trigger: card, start: "top 88%", once: true },
         });
+        // Icon lights red as the line reaches the card; reverts on scroll-up.
+        ScrollTrigger.create({
+          trigger: card,
+          start: "top 55%",
+          end: "bottom 45%",
+          onToggle: (self) =>
+            card.classList.toggle("line-reached", self.isActive),
+        });
       });
     }, scope);
-    return () => ctx.revert();
+
+    return () => {
+      ro.disconnect();
+      ctx.revert();
+    };
   }, []);
 
   return (
-    <section id="skills" ref={scope} className="px-6 py-32 sm:px-10">
+    <section id="skills" ref={scope} className="px-6 py-32 sm:px-10 lg:pl-[388px]">
       <Reveal>
         <span className="inline-block w-fit rounded-full border border-border-paper px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-ultra">
           What I work with
         </span>
       </Reveal>
 
-      <div className="relative mt-20">
-        {/* Running line weaving between the cards */}
+      <div data-skill-line-wrap className="relative mt-20">
+        {/* Running line — path computed at runtime from the node dots (see
+            effect). viewBox is set to the container's pixel size so it draws 1:1
+            with no distortion. */}
         <svg
+          data-skill-svg
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 hidden h-full w-full lg:block"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
           fill="none"
         >
           <path
             data-skill-line
-            d="M 28 1 C 28 14, 72 17, 72 30 C 72 43, 28 46, 28 59 C 28 72, 72 75, 72 88 C 72 95, 55 97, 48 99"
             stroke="var(--ultra)"
-            strokeWidth="5"
+            strokeWidth="3"
             strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
-            opacity="0.85"
+            strokeLinejoin="round"
+            opacity="0.9"
           />
         </svg>
 
@@ -128,21 +178,19 @@ export default function Skills() {
               key={s.title}
               data-skill-card
               data-card
-              className={`group relative w-full max-w-3xl rounded-xl border border-border-paper bg-paper-card/60 p-10 backdrop-blur-[20px] sm:p-12 ${
+              className={`group relative w-full max-w-3xl rounded-card border border-border-paper bg-paper-card/60 p-10 backdrop-blur-[20px] sm:p-12 ${
                 i % 2 === 1 ? "lg:self-end" : "lg:self-start"
               }`}
             >
               <span
+                data-skill-node
                 aria-hidden="true"
                 className={`absolute top-12 hidden h-4 w-4 rounded-full bg-signal ring-4 ring-paper lg:block ${
                   i % 2 === 1 ? "-left-2" : "-right-2"
                 }`}
               />
 
-              <div className="flex items-start justify-between gap-4">
-                <span className="font-mono text-sm tracking-[0.2em] text-muted-paper">
-                  {s.marker}
-                </span>
+              <div className="flex justify-end">
                 <CardIcon icon={s.icon} className="h-11 w-11 shrink-0" />
               </div>
 

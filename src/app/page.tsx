@@ -6,7 +6,6 @@ import Hero from "@/components/Hero";
 import Skills from "@/components/Skills";
 import Work from "@/components/Work";
 import Statement from "@/components/Statement";
-import About from "@/components/About";
 import Services from "@/components/Services";
 import Contact from "@/components/Contact";
 
@@ -27,11 +26,10 @@ export default function Home() {
             data-light-zone: the ambient light leans toward the cursor while the
             pointer is over the paper sections, and returns to pure drift once
             it leaves. */}
-        <div data-light-zone className="lg:pl-[388px]">
+        <div data-light-zone>
           <Skills />
           <Work />
           <Statement />
-          <About />
           <Services />
           <Contact />
         </div>

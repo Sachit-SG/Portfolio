@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
-import SkillCharts from "./SkillCharts";
+import { Phone, Mail } from "lucide-react";
+import SkillMeters from "./SkillMeters";
+import EmailTab from "./EmailTab";
 
 const menu = [
   { label: "Home", href: "#top" },
   { label: "Skills", href: "#skills" },
   { label: "Work", href: "#work" },
-  { label: "About", href: "#about" },
   { label: "Services", href: "#services" },
   { label: "Contact", href: "#contact" },
 ];
@@ -23,15 +24,6 @@ const stats = [
   { value: 5, suffix: "", label: "Live\nsystems" },
   { value: 1, suffix: "yr", label: "Sole dev\nat Lama" },
   { value: 2, suffix: "yrs", label: "Design\nbefore dev" },
-];
-
-const stack = [
-  "Node",
-  "PostgreSQL",
-  "Next.js",
-  "TypeScript",
-  "Prisma",
-  "Supabase",
 ];
 
 export default function SideRail() {
@@ -56,7 +48,7 @@ export default function SideRail() {
     const safety = setTimeout(() => {
       if (built) return;
       gsap.set(el, { opacity: 1 });
-      gsap.set(el.querySelectorAll("[data-rail-card]"), {
+      gsap.set(el.querySelectorAll("[data-rail-card], [data-rail-link]"), {
         clearProps: "opacity,transform",
       });
       el.style.pointerEvents = "auto";
@@ -118,6 +110,23 @@ export default function SideRail() {
               },
               0.45,
             );
+            // NESH frame 4: the menu container forms first, THEN each link
+            // arrives and materialises one by one. Starts at 0.72 — after the
+            // menu card has mostly grown — so links populate a formed surface
+            // rather than a still-scaling one. This is the "assembling
+            // piece-by-piece" read, not "a card faded in".
+            gsap.set("[data-rail-link]", { opacity: 0, x: -14 });
+            tl.to(
+              "[data-rail-link]",
+              {
+                opacity: 1,
+                x: 0,
+                stagger: 0.05,
+                duration: 0.35,
+                ease: "none",
+              },
+              0.72,
+            );
           }, scope);
           return () => ctx.revert();
         },
@@ -135,6 +144,44 @@ export default function SideRail() {
       clearTimeout(safety);
       cancelAnimationFrame(raf);
       mm.revert();
+    };
+  }, []);
+
+  // Adaptive theme: flip the rail dark/light based on the section behind it, so
+  // its translucent panels never turn muddy and drop text below readable
+  // contrast (the problem over the dark hero). Probes the section at the rail's
+  // vertical centre; [data-dark] sections (hero, statement, contact) → dark.
+  useEffect(() => {
+    const el = scope.current;
+    if (!el) return;
+    const darks = Array.from(document.querySelectorAll<HTMLElement>("[data-dark]"));
+    const cards = Array.from(el.querySelectorAll<HTMLElement>("[data-rail-card]"));
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      // Each card decides its own theme from ITS OWN centre — so a card only
+      // flips once it is actually in contact with the dark section, and the rail
+      // recolours card-by-card in sequence, not all at once.
+      cards.forEach((card) => {
+        const r = card.getBoundingClientRect();
+        const cy = r.top + r.height / 2;
+        const dark = darks.some((s) => {
+          const sr = s.getBoundingClientRect();
+          return sr.top <= cy && sr.bottom >= cy;
+        });
+        card.dataset.behind = dark ? "dark" : "light";
+      });
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
     };
   }, []);
 
@@ -174,17 +221,17 @@ export default function SideRail() {
       ref={scope}
       aria-label="Site navigation"
       data-rail-root
-      className="pointer-events-none fixed bottom-6 left-6 top-6 z-50 hidden w-[332px] flex-col gap-3 lg:flex"
+      className="pointer-events-none fixed bottom-4 left-6 top-4 z-50 hidden w-[332px] flex-col gap-2 lg:flex"
     >
       {/* Name-as-logo + socials */}
       <div
         data-rail-card
-        className="flex items-center justify-between rounded-2xl border border-border-paper bg-paper-card/55 px-4 py-3 backdrop-blur-[20px]"
+        className="flex items-center justify-between rounded-card border border-[var(--rail-border)] bg-[var(--rail-card)] px-4 py-3 backdrop-blur-[20px]"
       >
         <a
           href="#top"
           data-rail-logo
-          className="rounded-lg bg-signal px-3.5 py-2 text-lg font-semibold tracking-tight text-white"
+          className="rounded-[6px] bg-signal px-3.5 py-2 text-lg font-semibold tracking-tight text-white"
         >
           SACHIT<sup className="text-[9px]">®</sup>
         </a>
@@ -196,7 +243,7 @@ export default function SideRail() {
               title={s.title}
               target="_blank"
               rel="noopener noreferrer"
-              className="grid h-8 w-8 place-items-center rounded-lg bg-text-paper font-mono text-[11px] font-bold lowercase text-paper transition-colors hover:bg-signal"
+              className="grid h-8 w-8 place-items-center rounded-[6px] bg-[var(--rail-fg)] font-mono text-[11px] font-bold lowercase text-[var(--rail-card)] transition-colors hover:bg-signal"
             >
               {s.label}
             </a>
@@ -204,20 +251,11 @@ export default function SideRail() {
         </div>
       </div>
 
-      {/* Positioning line */}
-      <div
-        data-rail-card
-        className="rounded-2xl border border-border-paper bg-paper-card/40 px-4 py-4 text-sm leading-relaxed text-muted-paper backdrop-blur-[20px]"
-      >
-        Backend and full stack developer building production systems — schema,
-        auth, and the APIs products run on.
-      </div>
-
       {/* Stats with count-up */}
       <div
         data-rail-card
         data-rail-stats
-        className="grid grid-cols-3 gap-1 rounded-2xl border border-border-paper bg-paper-card/40 px-3 py-3.5 text-center backdrop-blur-[20px]"
+        className="grid grid-cols-3 gap-1 rounded-card border border-[var(--rail-border)] bg-[var(--rail-card-soft)] px-3 py-2.5 text-center backdrop-blur-[20px]"
       >
         {stats.map((s) => (
           <div key={s.label}>
@@ -225,7 +263,7 @@ export default function SideRail() {
               <span data-count={s.value}>{s.value}</span>
               {s.suffix}
             </div>
-            <div className="mt-2 whitespace-pre-line text-[11px] leading-tight text-muted-paper">
+            <div className="mt-1 whitespace-pre-line text-[10px] leading-tight text-[var(--rail-muted)]">
               {s.label}
             </div>
           </div>
@@ -236,14 +274,15 @@ export default function SideRail() {
       <nav
         data-rail-card
         data-rail-menu
-        className="flex flex-1 flex-col justify-center rounded-2xl border border-border-paper bg-paper-card/55 px-3 py-2 backdrop-blur-[20px]"
+        className="flex flex-1 flex-col justify-between rounded-card border border-[var(--rail-border)] bg-[var(--rail-card)] px-3 py-3 backdrop-blur-[20px]"
       >
         {menu.map((m, i) => (
           <a
             key={m.label}
             href={m.href}
-            className={`px-4 py-4 text-xl font-semibold text-text-paper transition-colors hover:text-ultra-bright ${
-              i > 0 ? "border-t border-border-paper" : ""
+            data-rail-link
+            className={`px-4 py-3 text-lg font-semibold text-[var(--rail-fg)] transition-colors hover:text-ultra-bright ${
+              i > 0 ? "border-t border-[var(--rail-border)]" : ""
             }`}
           >
             {m.label}
@@ -251,57 +290,44 @@ export default function SideRail() {
         ))}
       </nav>
 
-      {/* Skill charts — the rail counterpart of the hero cluster.
-          tone="paper": --ultra-ink fails contrast on this light surface. */}
+      {/* Skill meters — the rail counterpart of the hero cluster. Keeps the
+          data-rail-charts hook so the hero cluster still has a migration
+          target. tone="paper": --ultra-ink fails contrast on this light
+          surface, so filled segments use --signal. */}
       <div
         data-rail-card
         data-rail-charts
-        className="rounded-2xl border border-border-paper bg-paper-card/40 px-3.5 py-3.5 backdrop-blur-[20px]"
+        className="rounded-card border border-[var(--rail-border)] bg-[var(--rail-card-soft)] px-3.5 py-3 backdrop-blur-[20px]"
       >
-        <SkillCharts tone="paper" />
+        <SkillMeters tone="auto" compact />
       </div>
 
-      {/* Stack */}
-      <div
-        data-rail-card
-        className="rounded-2xl border border-border-paper bg-paper-card/40 px-3.5 py-3 backdrop-blur-[20px]"
-      >
-        <div className="mb-2.5 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-paper">
-          Stack
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {stack.map((t) => (
-            <span
-              key={t}
-              className="rounded-full border border-border-paper px-3 py-1.5 font-mono text-[11px] text-muted-paper"
-            >
-              {t}
-            </span>
-          ))}
-        </div>
+      {/* Email tab — real photo (public/sachit.jpg) beside the address. */}
+      <div data-rail-card>
+        <EmailTab
+          tone="auto"
+          className="rounded-card border border-[var(--rail-border)] bg-[var(--rail-card-soft)] px-3.5 py-3 backdrop-blur-[20px]"
+        />
       </div>
 
-      {/* Availability */}
-      <div
-        data-rail-card
-        className="flex items-center gap-2 rounded-2xl border border-border-paper bg-paper-card/40 px-3.5 py-2.5 backdrop-blur-[20px]"
-      >
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-signal opacity-70" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-signal" />
-        </span>
-        <span className="font-mono text-xs text-muted-paper">
-          Open to work — remote / KTM
-        </span>
+      {/* Two contact buttons, heynesh-style: solid red for the primary call,
+          outline for email. Call = phone icon, email = mail icon. */}
+      <div data-rail-card className="grid grid-cols-2 gap-2">
+        <a
+          href="tel:+9779845913643"
+          className="flex items-center justify-center gap-2 rounded-card bg-signal px-3 py-3.5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
+        >
+          <Phone className="h-4 w-4" strokeWidth={2.4} />
+          Contact me
+        </a>
+        <a
+          href="mailto:sachitghimire2@gmail.com"
+          className="flex items-center justify-center gap-2 rounded-card border border-signal/50 px-3 py-3.5 text-sm font-bold text-signal transition-colors hover:bg-signal hover:text-white"
+        >
+          <Mail className="h-4 w-4" strokeWidth={2.4} />
+          Get in touch
+        </a>
       </div>
-
-      <a
-        href="#contact"
-        data-rail-card
-        className="rounded-2xl bg-signal px-4 py-4 text-center text-lg font-bold text-white transition-transform hover:-translate-y-0.5"
-      >
-        Let&apos;s talk
-      </a>
     </aside>
   );
 }

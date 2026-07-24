@@ -61,14 +61,9 @@ export default function Services() {
     <section
       id="services"
       ref={scope}
-      className="px-6 py-32 text-text-paper sm:px-10"
+      className="px-6 py-32 text-text-paper sm:px-10 lg:pl-[388px]"
     >
       <div className="mb-16 max-w-2xl">
-        <Reveal>
-          <span className="inline-block w-fit rounded-full border border-border-paper px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-ultra">
-            What I can build
-          </span>
-        </Reveal>
         <LineReveal
           lines={["What you get,", "if we work together."]}
           className="font-display mt-4 text-4xl font-medium leading-[1.0] tracking-[-0.005em] sm:text-6xl"
@@ -86,11 +81,8 @@ export default function Services() {
           <div
             key={s.title}
             data-service-card
-            className="flex flex-col gap-4 rounded-xl border border-border-paper bg-paper-card/70 p-9 backdrop-blur-[16px] transition-colors hover:border-ultra/40 sm:p-11"
+            className="flex flex-col gap-4 rounded-card border border-border-paper bg-paper-card/70 p-9 backdrop-blur-[16px] transition-colors hover:border-ultra/40 sm:p-11"
           >
-            <span className="text-4xl font-semibold text-signal">
-              0{i + 1}
-            </span>
             <h3 className="text-2xl font-semibold tracking-[-0.01em] sm:text-3xl">
               {s.title}
             </h3>

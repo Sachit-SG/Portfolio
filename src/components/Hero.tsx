@@ -4,13 +4,13 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import ScrambleTextPlugin from "gsap/ScrambleTextPlugin";
-import SkillCharts from "./SkillCharts";
+import SkillMeters from "./SkillMeters";
+import EmailTab from "./EmailTab";
 
 gsap.registerPlugin(ScrollTrigger, ScrambleTextPlugin);
 
 const leftNav = [
   { label: "Home", href: "#top" },
-  { label: "About", href: "#about" },
   { label: "Work", href: "#work" },
 ];
 const rightNav = [
@@ -365,6 +365,7 @@ export default function Hero() {
     <section
       id="top"
       ref={scope}
+      data-dark
       className="relative min-h-[100svh] overflow-hidden bg-ink"
     >
       {/* Layer 1 — room scene.
@@ -510,7 +511,7 @@ export default function Hero() {
 
         {/* Frosted stat cards, left */}
         <div data-hero-stats className="absolute bottom-[26%] left-6 hidden flex-col gap-3 will-change-transform lg:flex lg:left-10">
-          <div data-hero-fade className="flex items-center gap-3 rounded-2xl border border-white/12 bg-white/5 px-5 py-3 backdrop-blur-md">
+          <div data-hero-fade className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-3 backdrop-blur-md">
             <span className="text-3xl font-extrabold text-ultra-ink">5</span>
             <span className="text-xs leading-tight text-[#fff5f5]/80">
               Live production
@@ -518,7 +519,7 @@ export default function Hero() {
               systems
             </span>
           </div>
-          <div data-hero-fade className="flex items-center gap-3 rounded-2xl border border-white/12 bg-white/5 px-5 py-3 backdrop-blur-md">
+          <div data-hero-fade className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-3 backdrop-blur-md">
             <span className="text-3xl font-extrabold text-ultra-ink">1yr</span>
             <span className="text-xs leading-tight text-[#fff5f5]/80">
               Sole dev at
@@ -528,31 +529,24 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Traits card + Services card, right */}
-        <div className="absolute bottom-[11%] right-6 hidden w-[16rem] flex-col gap-3 will-change-transform lg:right-10 lg:flex">
-          <a
-            href="#services"
-            data-hero-fade
-            data-hero-copy
-            className="rounded-2xl border border-white/12 bg-white/5 px-5 py-4 backdrop-blur-md transition-colors hover:border-ultra-ink/50"
-          >
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#fff5f5]/55">
-              Services
-            </span>
-            <p className="mt-2 text-sm font-semibold leading-snug text-[#fff5f5]">
-              Full-stack apps, APIs, and sites shipped end to end.
-            </p>
-          </a>
-
-          {/* Skill charts — fills the dead space under the Services card.
-              tone="ink" so the glow uses --ultra-ink, the only red that holds
-              contrast on the dark hero. */}
+        {/* Skill meters + email tab, right. Replaces the old radial chart and
+            Services card. tone="ink" for the dark hero. */}
+        <div className="absolute bottom-[11%] right-6 hidden w-[17rem] flex-col gap-3 will-change-transform lg:right-10 lg:flex">
           <div
             data-hero-fade
             data-hero-charts
-            className="rounded-2xl border border-white/12 bg-white/5 px-4 py-3 backdrop-blur-md"
+            className="rounded-card border border-white/10 bg-ink/55 px-4 py-4 backdrop-blur-md"
           >
-            <SkillCharts tone="ink" variant="compact" />
+            <SkillMeters tone="ink" compact />
+          </div>
+          {/* data-hero-copy: the email has no fly-to-rail morph, so it floats
+              up and fades with the headline instead of sitting static; the rail
+              email takes over. */}
+          <div data-hero-fade data-hero-copy>
+            <EmailTab
+              tone="ink"
+              className="rounded-card border border-white/10 bg-ink/55 px-4 py-3 backdrop-blur-md transition-colors hover:border-signal/60"
+            />
           </div>
         </div>
 

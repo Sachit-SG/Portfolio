@@ -74,7 +74,7 @@ export default function About() {
               key={item.title}
               data-milestone
               data-card
-              className={`group relative w-full max-w-3xl rounded-xl border border-border-paper bg-paper-card/60 p-10 backdrop-blur-[20px] sm:p-12 ${
+              className={`group relative w-full max-w-3xl rounded-card border border-border-paper bg-paper-card/60 p-10 backdrop-blur-[20px] sm:p-12 ${
                 i % 2 === 1 ? "lg:self-end" : "lg:self-start"
               }`}
             >
@@ -101,12 +101,9 @@ export default function About() {
                 {item.detail}
               </p>
 
-              <footer className="mt-7 flex items-center justify-between gap-4 border-t border-border-paper pt-4">
+              <footer className="mt-7 border-t border-border-paper pt-4">
                 <span className="font-mono text-xs text-muted-paper">
                   {item.period}
-                </span>
-                <span className="rounded-full border border-border-paper px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-ultra">
-                  0{i + 1}
                 </span>
               </footer>
             </article>

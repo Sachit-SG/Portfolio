@@ -35,7 +35,13 @@
                               paper-card: clears AA for 24px+/18.66px-bold, FAILS for body.
                               Never use this on small text — use --ultra there. */
   --ultra-ink: #ff6b6b;    /* bright red — text/marks on DARK only (7.02:1). Never behind white text. */
-  --signal: #ad2121;       /* fills that carry white text (6.96:1) */
+  /* BRAND FILL — logo chip, CTAs, buttons, dots. This is the vibrant deep red
+     the identity is built on. It carries WHITE text, NOT red text, so it does
+     not share --ultra's small-text constraint: white on #d92626 is 4.93:1.
+     Keeping it separate from --ultra is the whole point — conflating them is
+     what made every fill dull. NEVER put red text on this; NEVER use it AS
+     small text on light (2.x:1). */
+  --signal: #d92626;
 
   /* borders */
   --border-paper: rgba(26, 16, 17, 0.13);
@@ -57,6 +63,15 @@
   --color-signal: var(--signal);
   --color-border-paper: var(--border-paper);
   --color-border-ink: var(--border-ink);
+  /* Radius system — deliberate, semantic. `rounded-card` is OUR value; leaving
+     Tailwind's own scale (rounded-xl etc.) untouched so it means what everyone
+     expects. Cards 10px = heynesh's 7-11px band, rhymes with Clash's squared
+     terminals; sharp cards vs full pills IS the system.
+       rounded-lg   = 8px  chips / logo / small controls
+       rounded-card = 10px all cards & panels
+       rounded-full = pills CTAs
+       rounded-[3px] meter dots */
+  --radius-card: 0.625rem;
   /* Two-face system: Clash Display carries identity on the big type, Switzer
      carries everything readable. Clash's weight axis ends at 700 — asking it
      for 800/900 gets a synthetic-bold fake that smears at display size. */
@@ -153,6 +168,64 @@ body {
     animation: chart-pulse 4.5s ease-in-out infinite;
     stroke-dashoffset: 0;
   }
+}
+
+/* Skill-meter segments: static red fill (the data), only the last filled dot
+   blinks. No glow. The fill is painted at rest, so a stalled clock still shows
+   the correct value — the blink is pure decoration on top. */
+@keyframes seg-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-skill-meters] [data-seg="tip"] {
+    animation: seg-blink 1.4s ease-in-out infinite;
+  }
+}
+
+/* Adaptive rail theme — the rail is fixed over whatever section scrolls behind
+   it. Over the dark hero its light translucent panels turn muddy and the text
+   drops below readable contrast. So it flips: light panels over paper sections,
+   dark panels over dark sections (same idea as darkening the hero glass so the
+   red reads). SideRail sets data-behind from the section under the rail's
+   vertical centre. */
+/* Vars live on EACH card, not the root, so cards flip individually as they
+   each reach a dark section — the bottom cards (buttons, email) hit it first
+   when scrolling down, so the rail recolours bottom-up in sequence rather than
+   all at once. --rail-seg-track is the meter's black bar: transparent on light
+   (a black bar on cream looks bad), black on dark (the red-on-black look). */
+[data-rail-card] {
+  --rail-card: rgba(244, 232, 229, 0.62);
+  --rail-card-soft: rgba(244, 232, 229, 0.46);
+  --rail-fg: #1a1011;
+  --rail-muted: #665557;
+  --rail-border: rgba(26, 16, 17, 0.13);
+  --rail-seg-on: #d92626;
+  --rail-seg-off: rgba(26, 16, 17, 0.16);
+  --rail-seg-track: transparent;
+}
+[data-rail-card][data-behind="dark"] {
+  --rail-card: rgba(20, 10, 12, 0.66);
+  --rail-card-soft: rgba(20, 10, 12, 0.52);
+  --rail-fg: #fff5f5;
+  --rail-muted: #b09a9c;
+  --rail-border: rgba(255, 245, 245, 0.16);
+  --rail-seg-on: #ff6b6b;
+  --rail-seg-off: #2a1517;
+  --rail-seg-track: #140a0c;
+}
+/* Smooth the swap so it cross-fades as you scroll a boundary, not a hard cut. */
+[data-rail-card],
+[data-rail-card] * {
+  transition: background-color 0.35s ease, color 0.35s ease,
+    border-color 0.35s ease;
+}
+
+/* Skills running line: when the line reaches a card (scroll-driven), its icon
+   lights up red; scrolling back up returns it to grey. */
+[data-skill-card].line-reached [data-icon-draw] {
+  color: var(--ultra-bright);
+  transform: scale(1.1);
 }
 
 /* The side rail starts hidden ONLY when it will be animated in. Under reduced

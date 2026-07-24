@@ -15,7 +15,7 @@ export default function ProjectCard({
       target="_blank"
       rel="noopener noreferrer"
       data-project-card
-      className="group relative flex w-[80vw] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border-paper bg-paper-card/70 backdrop-blur-[16px] transition-colors hover:border-ultra/40 sm:w-[420px] lg:h-full lg:w-[460px]"
+      className="group relative flex w-[80vw] shrink-0 snap-start flex-col overflow-hidden rounded-card border border-border-paper bg-paper-card/70 backdrop-blur-[16px] transition-colors hover:border-ultra/40 sm:w-[420px] lg:h-full lg:w-[460px]"
     >
       {/* Mockup panel — real screenshot of the live site.
           Fixed ratio while the row scrolls natively; inside the pinned desktop

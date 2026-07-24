@@ -6,7 +6,6 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 import { projects } from "@/lib/projects";
 import ProjectCard from "./ProjectCard";
 import LineReveal from "./LineReveal";
-import Reveal from "./Reveal";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -70,15 +69,11 @@ export default function Work() {
   return (
     <section
       id="work"
+      data-dark
       ref={section}
-      className="relative py-24 text-text-paper lg:flex lg:h-screen lg:flex-col lg:justify-center lg:overflow-hidden lg:py-0"
+      className="relative bg-ink py-24 text-text-ink lg:pl-[388px] lg:flex lg:h-screen lg:flex-col lg:justify-center lg:overflow-hidden lg:py-0"
     >
       <div className="mb-10 px-6 sm:px-10">
-        <Reveal>
-          <span className="inline-block w-fit rounded-full border border-border-paper px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-ultra">
-            Selected work
-          </span>
-        </Reveal>
         <LineReveal
           lines={["Built for production.", "Made to last."]}
           className="font-display mt-5 max-w-4xl text-5xl font-medium leading-[0.92] tracking-[-0.015em] sm:text-7xl"

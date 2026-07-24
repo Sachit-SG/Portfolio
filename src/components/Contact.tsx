@@ -4,14 +4,10 @@ import Reveal from "./Reveal";
 export default function Contact() {
   return (
     <section
+      data-dark
       id="contact"
-      className="mt-24 flex flex-col items-start rounded-t-[40px] bg-ink px-6 py-32 text-text-ink sm:px-10"
+      className="mt-24 flex flex-col items-start rounded-t-[40px] bg-ink px-6 py-32 text-text-ink sm:px-10 lg:pl-[388px]"
     >
-      <Reveal>
-        <span className="mb-8 inline-block w-fit rounded-full border border-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-ultra-ink">
-          Contact
-        </span>
-      </Reveal>
 
       <a
         href="mailto:sachitghimire2@gmail.com"
