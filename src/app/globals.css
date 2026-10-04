@@ -195,8 +195,8 @@ body {
    all at once. --rail-seg-track is the meter's black bar: transparent on light
    (a black bar on cream looks bad), black on dark (the red-on-black look). */
 [data-rail-card] {
-  --rail-card: rgba(244, 232, 229, 0.62);
-  --rail-card-soft: rgba(244, 232, 229, 0.46);
+  --rail-card: rgba(244, 232, 229, 0.94);
+  --rail-card-soft: rgba(244, 232, 229, 0.9);
   --rail-fg: #1a1011;
   --rail-muted: #665557;
   --rail-border: rgba(26, 16, 17, 0.13);
@@ -246,4 +246,45 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* SectionTexture — see component for the "why one system, three variants".
+   Both motion variants are gated to no-preference; the global reduce block
+   above also collapses any that leak through to a single frame, never a loop. */
+
+/* grid: slow ambient drift. Originally 56px/40s (~1.4px/s) — tuned too far
+   toward "never a screensaver" and landed below the threshold of actually
+   being perceptible without staring at a fixed point. 16s (~3.5px/s) is
+   still well short of "constant motion" but is now something a visitor can
+   actually notice. */
+@keyframes texture-grid-drift {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(-56px, -56px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-texture-grid] {
+    animation: texture-grid-drift 16s linear infinite;
+  }
+}
+
+/* trace: a ONE-TIME fade-in as the section enters view, not a loop — "some
+   backgrounds have motion, some have shapes" means this is the motion moment,
+   not ambient noise. Default opacity is the SAFE fallback for browsers without
+   `animation-timeline: view()` (older Safari/Firefox) — visible immediately
+   rather than stuck at 0 forever waiting on an animation that never runs. */
+[data-texture-trace] {
+  opacity: 0.5;
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-texture-trace] {
+      opacity: 0;
+      animation: texture-trace-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+  }
+}
+@keyframes texture-trace-in {
+  to { opacity: 0.5; }
 }

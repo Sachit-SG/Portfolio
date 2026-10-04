@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
 import { Phone, Mail } from "lucide-react";
 import SkillMeters from "./SkillMeters";
 import EmailTab from "./EmailTab";
 
+gsap.registerPlugin(ScrollTrigger);
+
+// "Approach" links to Statement.tsx ("How I work") — a real section that
+// already exists on the page but had no nav entry at all. Filling that gap
+// is what restores 6 items, not padding the list with something invented.
 const menu = [
   { label: "Home", href: "#top" },
-  { label: "Skills", href: "#skills" },
   { label: "Work", href: "#work" },
+  { label: "Skills", href: "#skills" },
+  { label: "Approach", href: "#approach" },
   { label: "Services", href: "#services" },
   { label: "Contact", href: "#contact" },
 ];
@@ -27,9 +34,7 @@ const stats = [
 ];
 
 export default function SideRail() {
-  const [shown, setShown] = useState(false);
   const scope = useRef<HTMLElement>(null);
-  const played = useRef(false);
 
   // The rail is driven by the SAME scroll range as the hero's pin, so the cards
   // grow into place while the hero's wordmark/nav/stats are still flying toward
@@ -48,9 +53,12 @@ export default function SideRail() {
     const safety = setTimeout(() => {
       if (built) return;
       gsap.set(el, { opacity: 1 });
-      gsap.set(el.querySelectorAll("[data-rail-card], [data-rail-link]"), {
-        clearProps: "opacity,transform",
-      });
+      gsap.set(
+        el.querySelectorAll(
+          "[data-rail-card], [data-rail-link], [data-rail-surface], [data-rail-content]",
+        ),
+        { clearProps: "opacity,transform" },
+      );
       el.style.pointerEvents = "auto";
     }, 3000);
 
@@ -59,84 +67,188 @@ export default function SideRail() {
     // yet when this effect runs — ScrollTrigger then builds against a null
     // trigger and the whole handoff silently does nothing. Wait for it.
     let raf = 0;
-    const whenHeroExists = (go: () => void) => {
-      if (document.querySelector("#top")) return go();
+    // Resolve the actual node once, up front — a string selector gets
+    // re-queried by ScrollTrigger internally, which is what raced against
+    // Hero's mount and warned "Element not found: #top". A captured
+    // element reference can't go stale that way.
+    const whenHeroExists = (go: (hero: HTMLElement) => void) => {
+      const hero = document.querySelector<HTMLElement>("#top");
+      if (hero) return go(hero);
       raf = requestAnimationFrame(() => whenHeroExists(go));
     };
 
-    whenHeroExists(() => {
+    whenHeroExists((hero) => {
       mm.add(
         "(min-width: 1024px) and (prefers-reduced-motion: no-preference)",
         () => {
           built = true;
+          let measure = () => {};
           const ctx = gsap.context(() => {
             gsap.set(el, { opacity: 1 });
+            const heroLinks = Array.from(
+              document.querySelectorAll<HTMLElement>("[data-hero-nav] a"),
+            );
+            const railLinks = Array.from(
+              el.querySelectorAll<HTMLElement>("[data-rail-link]"),
+            );
+            const deltas = railLinks.map(() => ({ x: 0, y: 0 }));
+            // HeyNesh, measured on the live menu: each horizontal hero label
+            // travels into its side slot. Home lands at 30% of the hero, each
+            // next row 1% later. The row surface scales across the last 2%,
+            // and the word scales across the last 1% into 1% after landing.
+            const travelStart = [0.07, 0.06, 0.04, 0.05, 0.03, 0.02];
+            const travelEnd = [0.3, 0.31, 0.32, 0.33, 0.34, 0.35];
+            const measureTravel = () => {
+              heroLinks.forEach((a) => gsap.set(a, { x: 0, y: 0 }));
+              heroLinks.forEach((a, i) => {
+                const rail = railLinks[i];
+                if (!rail) return;
+                const from = a.getBoundingClientRect();
+                const to = rail.getBoundingClientRect();
+                deltas[i].x = to.left + 16 - from.left;
+                deltas[i].y =
+                  to.top + to.height / 2 - (from.top + from.height / 2);
+              });
+            };
+            ScrollTrigger.addEventListener("refreshInit", measureTravel);
+            measure = measureTravel;
             const tl = gsap.timeline({
               scrollTrigger: {
-                trigger: "#top",
+                trigger: hero,
                 start: "top top",
-                end: "+=130%",
-                scrub: 0.6,
+                // Must match Hero's pin end and the 2.15s pad at the bottom.
+                end: "+=190%",
+                scrub: true,
                 invalidateOnRefresh: true,
                 onUpdate: (self) => {
-                  // Only clickable once it has actually arrived.
-                  el.style.pointerEvents =
-                    self.progress > 0.55 ? "auto" : "none";
-                  if (self.progress > 0.8) setShown(true);
+                  // First label lands near 30% of the pin.
+                  el.style.pointerEvents = self.progress > 0.32 ? "auto" : "none";
                 },
               },
             });
-            // Explicit set + .to(), NOT .from(). A .from() placed at position 0.45
-            // leaves the cards in their natural state for the first 45% of the
-            // scrub, so the whole rail sat visible on top of the hero at load.
-            gsap.set("[data-rail-card]", {
+            // Words travel first. Each section's box then grows from small
+            // to full size across the scroll. The type stays at its final
+            // size and just sits. A full-size fade is what read as a zap.
+            // Scrubbed progress is linear (timing table: rotation/progress = linear).
+            // Card entrance starts at 95% scale, never from 0. Stagger is the
+            // standard 50-80ms band, mapped onto this 2.15 clock.
+            gsap.set("[data-rail-surface]", {
+              scale: 0.95,
               opacity: 0,
-              x: -40,
-              scaleY: 0.55,
-              transformOrigin: "left top",
+              transformOrigin: "left center",
             });
-            // Cards grow up out of the left edge rather than sliding in as
-            // finished blocks — the panel height expanding is what sells "this
-            // surface was always here, it just unfolded".
+            gsap.set("[data-rail-content]", { opacity: 0 });
             tl.to(
-              "[data-rail-card]",
+              "[data-rail-surface]",
               {
+                scale: 1,
                 opacity: 1,
-                x: 0,
-                scaleY: 1,
-                stagger: 0.07,
-                duration: 0.55,
+                stagger: 0.04,
+                duration: 0.5,
                 ease: "none",
               },
-              0.45,
+              0.62,
             );
-            // NESH frame 4: the menu container forms first, THEN each link
-            // arrives and materialises one by one. Starts at 0.72 — after the
-            // menu card has mostly grown — so links populate a formed surface
-            // rather than a still-scaling one. This is the "assembling
-            // piece-by-piece" read, not "a card faded in".
-            gsap.set("[data-rail-link]", { opacity: 0, x: -14 });
             tl.to(
-              "[data-rail-link]",
+              "[data-rail-content]",
               {
                 opacity: 1,
-                x: 0,
-                stagger: 0.05,
-                duration: 0.35,
+                stagger: 0.04,
+                duration: 0.5,
                 ease: "none",
               },
-              0.72,
+              0.62,
             );
+            gsap.set("[data-rail-link-bg]", {
+              opacity: 0,
+              scaleX: 0,
+              transformOrigin: "left center",
+            });
+            gsap.set("[data-rail-link-label]", { opacity: 0, scale: 1 });
+            measureTravel();
+            heroLinks.forEach((heroA, i) => {
+              const rail = railLinks[i];
+              if (!rail) return;
+              const startPct = travelStart[i] ?? 0.02;
+              const endPct = travelEnd[i] ?? 0.35;
+              const start = startPct * 2.15;
+              const end = endPct * 2.15;
+              const bg = rail.querySelector("[data-rail-link-bg]");
+              const label = rail.querySelector("[data-rail-link-label]");
+              tl.to(
+                heroA,
+                {
+                  x: () => deltas[i].x,
+                  y: () => deltas[i].y,
+                  ease: "none",
+                  duration: end - start,
+                },
+                start,
+              );
+              tl.to(
+                heroA,
+                { autoAlpha: 0, ease: "none", duration: 0.02 * 2.15 },
+                (endPct - 0.02) * 2.15,
+              );
+              if (bg) {
+                tl.to(
+                  bg,
+                  {
+                    opacity: 1,
+                    scaleX: 1,
+                    ease: "none",
+                    duration: 0.02 * 2.15,
+                  },
+                  (endPct - 0.02) * 2.15,
+                );
+              }
+              if (label) {
+                tl.to(
+                  label,
+                  {
+                    opacity: 1,
+                    ease: "none",
+                    duration: 0.02 * 2.15,
+                  },
+                  (endPct - 0.01) * 2.15,
+                );
+              }
+            });
+            tl.set({}, {}, 2.15);
           }, scope);
-          return () => ctx.revert();
+          return () => {
+            ScrollTrigger.removeEventListener("refreshInit", measure);
+            ctx.revert();
+          };
         },
       );
       // Reduced motion / below lg: no choreography, just present.
       mm.add("(prefers-reduced-motion: reduce)", () => {
         built = true;
-        gsap.set(el, { opacity: 1 });
-        el.style.pointerEvents = "auto";
-        setShown(true);
+        gsap.set(el.querySelectorAll("[data-rail-surface]"), {
+          opacity: 1,
+          scale: 1,
+        });
+        gsap.set(el.querySelectorAll("[data-rail-content], [data-rail-link]"), {
+          opacity: 1,
+          x: 0,
+          y: 0,
+          scale: 1,
+        });
+        gsap.set(el, { opacity: 0 });
+        const reducedTrigger = ScrollTrigger.create({
+          trigger: hero,
+          start: "bottom top",
+          onEnter: () => {
+            gsap.set(el, { opacity: 1 });
+            el.style.pointerEvents = "auto";
+          },
+          onLeaveBack: () => {
+            gsap.set(el, { opacity: 0 });
+            el.style.pointerEvents = "none";
+          },
+        });
+        return () => reducedTrigger.kill();
       });
     });
 
@@ -185,37 +297,6 @@ export default function SideRail() {
     };
   }, []);
 
-  // Stat numbers count up — once, when the rail has arrived.
-  useEffect(() => {
-    if (!shown || played.current) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    played.current = true;
-    const ctx = gsap.context(() => {
-      // The markup already renders the real number, so this only ever counts
-      // UP TO a value that is correct the whole time. Previously the DOM shipped
-      // a literal "0" and relied on the tween to replace it — when the rail
-      // scrolled out of view, this context reverted, and the `played` guard then
-      // blocked the tween from re-running, leaving the stats stuck on 0 forever.
-      gsap.utils.toArray<HTMLElement>("[data-count]").forEach((el) => {
-        const target = Number(el.dataset.count || 0);
-        const obj = { n: 0 };
-        gsap.to(obj, {
-          n: target,
-          duration: 1.1,
-          ease: "power2.out",
-          delay: 0.35,
-          onUpdate: () => {
-            el.textContent = String(Math.round(obj.n));
-          },
-          onComplete: () => {
-            el.textContent = String(target);
-          },
-        });
-      });
-    }, scope);
-    return () => ctx.revert();
-  }, [shown]);
-
   return (
     <aside
       ref={scope}
@@ -223,109 +304,133 @@ export default function SideRail() {
       data-rail-root
       className="pointer-events-none fixed bottom-4 left-6 top-4 z-50 hidden w-[332px] flex-col gap-2 lg:flex"
     >
-      {/* Name-as-logo + socials */}
-      <div
-        data-rail-card
-        className="flex items-center justify-between rounded-card border border-[var(--rail-border)] bg-[var(--rail-card)] px-4 py-3 backdrop-blur-[20px]"
-      >
-        <a
-          href="#top"
-          data-rail-logo
-          className="rounded-[6px] bg-signal px-3.5 py-2 text-lg font-semibold tracking-tight text-white"
-        >
-          SACHIT<sup className="text-[9px]">®</sup>
-        </a>
-        <div className="flex gap-1.5">
-          {socials.map((s) => (
-            <a
-              key={s.title}
-              href={s.href}
-              title={s.title}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="grid h-8 w-8 place-items-center rounded-[6px] bg-[var(--rail-fg)] font-mono text-[11px] font-bold lowercase text-[var(--rail-card)] transition-colors hover:bg-signal"
-            >
-              {s.label}
-            </a>
+      {/* Name-as-logo + socials. The surface grows. The type does not. */}
+      <div data-rail-card className="relative">
+        <div
+          data-rail-surface
+          className="pointer-events-none absolute inset-0 rounded-card border border-[var(--rail-border)] bg-[var(--rail-card)]"
+        />
+        <div data-rail-content className="relative flex items-center justify-between px-4 py-3">
+          <a
+            href="#top"
+            data-rail-logo
+            className="rounded-[6px] bg-signal px-3.5 py-2 text-lg font-semibold tracking-tight text-white"
+          >
+            SACHIT<sup className="text-[9px]">®</sup>
+          </a>
+          <div className="flex gap-1.5">
+            {socials.map((s) => (
+              <a
+                key={s.title}
+                href={s.href}
+                title={s.title}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="grid h-8 w-8 place-items-center rounded-[6px] bg-[var(--rail-fg)] font-mono text-[11px] font-bold lowercase text-[var(--rail-card)] transition-colors hover:bg-signal"
+              >
+                {s.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div data-rail-card data-rail-stats className="relative">
+        <div
+          data-rail-surface
+          className="pointer-events-none absolute inset-0 rounded-card border border-[var(--rail-border)] bg-[var(--rail-card-soft)]"
+        />
+        <div data-rail-content className="relative grid grid-cols-3 gap-1 px-3 py-2.5 text-center">
+          {stats.map((s) => (
+            <div key={s.label}>
+              <div className="font-display text-3xl font-bold leading-none text-ultra-bright">
+                <span data-count={s.value}>{s.value}</span>
+                {s.suffix}
+              </div>
+              <div className="mt-1 whitespace-pre-line text-[10px] leading-tight text-[var(--rail-muted)]">
+                {s.label}
+              </div>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Stats with count-up */}
-      <div
-        data-rail-card
-        data-rail-stats
-        className="grid grid-cols-3 gap-1 rounded-card border border-[var(--rail-border)] bg-[var(--rail-card-soft)] px-3 py-2.5 text-center backdrop-blur-[20px]"
-      >
-        {stats.map((s) => (
-          <div key={s.label}>
-            <div className="font-display text-3xl font-bold leading-none text-ultra-bright">
-              <span data-count={s.value}>{s.value}</span>
-              {s.suffix}
-            </div>
-            <div className="mt-1 whitespace-pre-line text-[10px] leading-tight text-[var(--rail-muted)]">
-              {s.label}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Menu — grows to fill the rail height */}
-      <nav
-        data-rail-card
-        data-rail-menu
-        className="flex flex-1 flex-col justify-between rounded-card border border-[var(--rail-border)] bg-[var(--rail-card)] px-3 py-3 backdrop-blur-[20px]"
-      >
-        {menu.map((m, i) => (
-          <a
-            key={m.label}
-            href={m.href}
-            data-rail-link
-            className={`px-4 py-3 text-lg font-semibold text-[var(--rail-fg)] transition-colors hover:text-ultra-bright ${
-              i > 0 ? "border-t border-[var(--rail-border)]" : ""
-            }`}
-          >
-            {m.label}
-          </a>
-        ))}
+      {/* Menu is its own section. Each row is a hairline, then the word.
+          Hover turns the word red. */}
+      <nav data-rail-card data-rail-menu className="relative flex flex-1 flex-col">
+        <div
+          data-rail-surface
+          className="pointer-events-none absolute inset-0 rounded-card border border-[var(--rail-border)] bg-[var(--rail-card)]"
+        />
+        <div className="relative flex flex-1 flex-col justify-between px-3 py-3">
+          {menu.map((m, i) => (
+            <a
+              key={m.label}
+              href={m.href}
+              data-rail-link
+              className="group relative block px-4 py-3 text-lg font-semibold"
+            >
+              {i > 0 && (
+                <span
+                  data-rail-link-bg
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 top-0 h-px origin-left bg-[var(--rail-border)]"
+                />
+              )}
+              <span
+                data-rail-link-label
+                className="block text-[var(--rail-fg)] transition-colors duration-150 group-hover:text-ultra-bright"
+              >
+                {m.label}
+              </span>
+            </a>
+          ))}
+        </div>
       </nav>
 
-      {/* Skill meters — the rail counterpart of the hero cluster. Keeps the
-          data-rail-charts hook so the hero cluster still has a migration
-          target. tone="paper": --ultra-ink fails contrast on this light
-          surface, so filled segments use --signal. */}
-      <div
-        data-rail-card
-        data-rail-charts
-        className="rounded-card border border-[var(--rail-border)] bg-[var(--rail-card-soft)] px-3.5 py-3 backdrop-blur-[20px]"
-      >
-        <SkillMeters tone="auto" compact />
-      </div>
-
-      {/* Email tab — real photo (public/sachit.jpg) beside the address. */}
-      <div data-rail-card>
-        <EmailTab
-          tone="auto"
-          className="rounded-card border border-[var(--rail-border)] bg-[var(--rail-card-soft)] px-3.5 py-3 backdrop-blur-[20px]"
+      <div data-rail-card data-rail-charts className="relative">
+        <div
+          data-rail-surface
+          className="pointer-events-none absolute inset-0 rounded-card border border-[var(--rail-border)] bg-[var(--rail-card-soft)]"
         />
+        <div data-rail-content className="relative px-3.5 py-3">
+          <SkillMeters tone="auto" compact />
+        </div>
       </div>
 
-      {/* Two contact buttons, heynesh-style: solid red for the primary call,
-          outline for email. Call = phone icon, email = mail icon. */}
-      <div data-rail-card className="grid grid-cols-2 gap-2">
+      <div data-rail-card className="relative">
+        <div
+          data-rail-surface
+          className="pointer-events-none absolute inset-0 rounded-card border border-[var(--rail-border)] bg-[var(--rail-card-soft)]"
+        />
+        <div data-rail-content className="relative">
+          <EmailTab tone="auto" className="px-3.5 py-3" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
         <a
           href="tel:+9779845913643"
-          className="flex items-center justify-center gap-2 rounded-card bg-signal px-3 py-3.5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
+          className="relative flex items-center justify-center px-3 py-3.5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
         >
-          <Phone className="h-4 w-4" strokeWidth={2.4} />
-          Contact me
+          <span data-rail-surface className="absolute inset-0 rounded-card bg-signal" />
+          <span data-rail-content className="relative flex items-center gap-2">
+            <Phone className="h-4 w-4" strokeWidth={2.4} />
+            Contact me
+          </span>
         </a>
         <a
           href="mailto:sachitghimire2@gmail.com"
-          className="flex items-center justify-center gap-2 rounded-card border border-signal/50 px-3 py-3.5 text-sm font-bold text-signal transition-colors hover:bg-signal hover:text-white"
+          className="group relative flex items-center justify-center px-3 py-3.5 text-sm font-bold text-signal"
         >
-          <Mail className="h-4 w-4" strokeWidth={2.4} />
-          Get in touch
+          <span
+            data-rail-surface
+            className="absolute inset-0 rounded-card border border-signal/50 transition-colors group-hover:bg-signal"
+          />
+          <span data-rail-content className="relative flex items-center gap-2 transition-colors group-hover:text-white">
+            <Mail className="h-4 w-4" strokeWidth={2.4} />
+            Get in touch
+          </span>
         </a>
       </div>
     </aside>

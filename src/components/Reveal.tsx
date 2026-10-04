@@ -36,7 +36,13 @@ export default function Reveal({
         duration: 0.45,
         ease: "power3.out",
         stagger,
-        scrollTrigger: { trigger: ref.current, start, once: true },
+        // Reverses on the way back up rather than latching after one play, so
+        // scrolling up re-arms the whole page instead of leaving it spent.
+        scrollTrigger: {
+          trigger: ref.current,
+          start,
+          toggleActions: "play none none reverse",
+        },
       });
     }, ref);
     return () => ctx.revert();

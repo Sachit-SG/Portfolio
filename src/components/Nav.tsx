@@ -2,9 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+// Mobile nav (this component is lg:hidden; desktop uses SideRail). Kept in
+// sync with SideRail's menu. "About" used to point at #about — an id that
+// only exists in About.tsx, which is never rendered, so on mobile that link
+// scrolled nowhere. Skills was missing entirely.
 const links = [
+  { label: "Skills", href: "#skills" },
   { label: "Work", href: "#work" },
-  { label: "About", href: "#about" },
+  { label: "Approach", href: "#approach" },
   { label: "Services", href: "#services" },
   { label: "Contact", href: "#contact" },
 ];

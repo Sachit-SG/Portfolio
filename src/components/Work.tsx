@@ -27,6 +27,10 @@ export default function Work() {
         // overstates the visible width and the track stops short.
         const distance = () =>
           Math.max(0, t.scrollWidth - (t.parentElement?.clientWidth ?? 0) + 40);
+        // Work now follows the hero directly, so its own top is the correct
+        // pin boundary. The previous 610px delay existed only to wait for the
+        // Skills cards that used to precede it; keeping that offset after the
+        // proof-first reorder would create a dead gap before the project film.
         const tween = gsap.to(t, {
           x: () => -distance(),
           ease: "none",
@@ -60,7 +64,11 @@ export default function Work() {
         duration: 0.5,
         ease: "power3.out",
         stagger: 0.07,
-        scrollTrigger: { trigger: track.current, start: "top 90%", once: true },
+        scrollTrigger: {
+          trigger: track.current,
+          start: "top 90%",
+          toggleActions: "play none none reverse",
+        },
       });
     }, section);
     return () => ctx.revert();

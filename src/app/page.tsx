@@ -27,8 +27,8 @@ export default function Home() {
             pointer is over the paper sections, and returns to pure drift once
             it leaves. */}
         <div data-light-zone>
-          <Skills />
           <Work />
+          <Skills />
           <Statement />
           <Services />
           <Contact />

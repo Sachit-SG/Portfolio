@@ -7,9 +7,8 @@ const EMAIL = "sachitghimire2@gmail.com";
 /**
  * Wide contact tab: a real photo of Sachit beside the email address.
  *
- * The photo is expected at /public/sachit.jpg. Until that file exists the frame
- * shows a neutral initial placeholder rather than a broken image — the tab is
- * always presentable. Drop the real photo in and it appears with no code change.
+ * Uses the existing branded portrait. The initial remains as an error fallback,
+ * so a missing or corrupt asset never leaves browser-broken image chrome.
  */
 export default function EmailTab({
   tone = "ink",
@@ -50,9 +49,9 @@ export default function EmailTab({
         {imgOk ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src="/sachit.jpg"
-            alt="Sachit Ghimire"
-            className="h-full w-full object-cover"
+            src="/avatar-portrait.png"
+            alt="Illustrated portrait of Sachit Ghimire"
+            className="h-full w-full object-cover object-top"
             onError={() => setImgOk(false)}
           />
         ) : (

@@ -26,9 +26,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sachit Ghimire — Full Stack Developer",
+  title: "Sachit Ghimire — AI Automation & Full Stack Developer",
   description:
-    "Full stack developer building backend systems and the interfaces on top of them. Node, PostgreSQL, Next.js.",
+    "I build systems that run themselves — AI automation wired into live products, plus the backend and interfaces underneath. Node, PostgreSQL, Next.js.",
 };
 
 export default function RootLayout({

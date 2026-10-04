@@ -6,16 +6,23 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 import ScrambleTextPlugin from "gsap/ScrambleTextPlugin";
 import SkillMeters from "./SkillMeters";
 import EmailTab from "./EmailTab";
+import { projects } from "@/lib/projects";
 
 gsap.registerPlugin(ScrollTrigger, ScrambleTextPlugin);
 
+// Split 3/3 across the wordmark baseline, and kept in sync with SideRail's
+// menu — the two used to disagree, which is how Skills (the biggest section on
+// the page) ended up unreachable from the hero. "Clients" is gone: it was an
+// invented label pointing at #work, so the nav had two names for one section
+// and no name for two others.
 const leftNav = [
   { label: "Home", href: "#top" },
   { label: "Work", href: "#work" },
+  { label: "Skills", href: "#skills" },
 ];
 const rightNav = [
+  { label: "Approach", href: "#approach" },
   { label: "Services", href: "#services" },
-  { label: "Clients", href: "#work" },
   { label: "Contact", href: "#contact" },
 ];
 
@@ -27,7 +34,31 @@ export default function Hero() {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let safety: ReturnType<typeof setTimeout>;
-    const ctx = gsap.context(() => {
+    let cancelled = false;
+    const ctx = gsap.context(() => {}, scope);
+
+    // Everything below — the width-lock especially — depends on the REAL
+    // display font (Clash Display, loaded with next/font's display:"swap")
+    // being what's actually rendering when it measures. "swap" paints a
+    // fallback font first and swaps in the real one whenever it's ready; on a
+    // slow/cold load this effect could measure FALLBACK glyph widths, lock
+    // them via c.style.width, then have the real font swap in a moment later
+    // with different glyph shapes — the box stays locked to the wrong width
+    // and clips/squeezes the letter. That's what "only see C sometimes,
+    // reload fixes it" was: a warm cache loads the font fast enough to win
+    // the race; a cold one doesn't. document.fonts.ready guarantees this
+    // only runs once the real font is the one being measured.
+    const run = () => {
+      if (cancelled) return;
+      ctx.add(() => runIntro());
+    };
+    if (typeof document !== "undefined" && "fonts" in document) {
+      document.fonts.ready.then(run);
+    } else {
+      run();
+    }
+
+    function runIntro() {
       // Load-in. Three interchangeable wordmark reveals, switched with ?fx=
       //   ?fx=a  rise + unblur (editorial, the safe one)
       //   ?fx=b  boot sequence (scramble) — DEFAULT
@@ -82,6 +113,37 @@ export default function Hero() {
             i * 0.11
           );
         });
+
+        // STATIC BURST + PHOTO/SUBJECT GLITCH — the image and the cutout of
+        // Sachit resolve out of noise, NOT the name (that stays a clean
+        // scramble). One beat: static clears as the scene starts appearing,
+        // the glitch settles to clean by ~2s, roughly the same window the
+        // name's own scramble is still finishing in.
+        // "steps()" easing on the displacement, not a smooth ease — abrupt
+        // value jumps read as glitch; a smooth decay reads as blur.
+        const burst = scope.current?.querySelector<HTMLElement>("[data-hero-static]");
+        if (burst) {
+          intro.set(burst, { opacity: 0.92, backgroundPositionX: "0px" }, 0);
+          intro.to(burst, { backgroundPositionX: "43px", duration: 0.09 }, 0.09);
+          intro.to(burst, { backgroundPositionX: "-21px", duration: 0.09 }, 0.19);
+          intro.to(burst, { opacity: 0, duration: 0.2, ease: "power1.in" }, 0.3);
+        }
+        const displace = scope.current?.querySelector("#hero-displace");
+        if (displace) {
+          intro.set(displace, { attr: { scale: 55 } }, 0);
+          intro.to(displace, { attr: { scale: 0 }, duration: 1.9, ease: "steps(6)" }, 0.1);
+        }
+        // The filter itself — not just the displacement scale — only needs
+        // to be ON for this ~2s boot window. Leaving `filter: url(...)`
+        // resident on these two full-viewport layers for the component's
+        // whole lifetime forces them into the slow rasterize/filter
+        // compositing path permanently, even once scale is 0 and the effect
+        // is visually inert. Applied here, removed the instant this settles.
+        const pxLayers = scope.current?.querySelectorAll<HTMLElement>("[data-px]");
+        if (pxLayers?.length) {
+          intro.set(pxLayers, { filter: "url(#hero-glitch)" }, 0);
+          intro.set(pxLayers, { filter: "none" }, 2.0);
+        }
       } else if (fx === "c") {
         // SPECULAR SWEEP. Letters rise, then a wave of light crosses them.
         // Per-char brightness + shadow bloom rather than a masked gradient
@@ -117,13 +179,33 @@ export default function Hero() {
           stagger: 0.08,
         });
       }
-      // The rest of the hero arrives as a SEQUENCE, not a single block. 0.11
-      // between items (vs the old 0.06) is what makes the eye read it as
-      // one-after-another instead of "everything faded in together". Starts
-      // 0.6s before the wordmark finishes so the two overlap rather than the
-      // page sitting dead while the name resolves.
+      // TWO groups, not one — this is the actual fix for "buttons come up too
+      // late", not just an earlier position. Everything used to be one
+      // stagger chain anchored to "-=0.6" (0.6s before the wordmark finishes,
+      // ~2.05s under the fx=b scramble) — so the paragraph+CTA, sitting 7th
+      // and 8th of 10 in DOM order, didn't finish appearing until ~2.5s in.
+      // Sachit wants the slow, cinematic name kept exactly as-is, so the fix
+      // isn't shortening the scramble — it's giving the PRIMARY content (the
+      // headline and the two buttons someone actually clicks) its own fast,
+      // guaranteed-early group, independent of both the name's duration and
+      // the secondary chrome's stagger position.
       intro.from(
-        "[data-hero-fade]",
+        "[data-hero-primary]",
+        {
+          opacity: 0,
+          y: 18,
+          duration: 0.5,
+          ease: "power3.out",
+          stagger: 0.08,
+        },
+        0.5
+      );
+      // Secondary chrome (nav, stat cards, chart, email, corner taglines) —
+      // same visual treatment, starts alongside the primary group rather than
+      // waiting for it, so nothing about the scramble's length holds this up
+      // either.
+      intro.from(
+        "[data-hero-fade]:not([data-hero-primary])",
         {
           opacity: 0,
           y: 18,
@@ -131,7 +213,7 @@ export default function Hero() {
           ease: "power3.out",
           stagger: 0.11,
         },
-        "-=0.6"
+        0.5
       );
       // Safety: if the animation clock is throttled (backgrounded tab), timers
       // still fire — jump to the end so content can never strand invisible.
@@ -147,137 +229,94 @@ export default function Hero() {
       // is visible.
       const mm = gsap.matchMedia();
       mm.add("(min-width: 1024px)", () => {
-        // MIGRATION TARGETS — measured, not guessed.
-        // Each hero element flies to the on-screen box of its rail counterpart,
-        // so the wordmark genuinely lands on the logo chip instead of shrinking
-        // toward a hardcoded corner. Recomputed on every ScrollTrigger refresh
-        // (resize, font swap, layout change) because all three are viewport-
-        // relative. refreshInit fires while the timeline is reverted to its
-        // start state, which is the only moment the "from" rects are untransformed.
-        const targets = {
-          wordmark: { x: 0, y: 0, scale: 0.08 },
-          nav: { x: 0, y: 0 },
-          stats: { x: 0, y: 0 },
-          charts: { x: 0, y: 0 },
-        };
-        const delta = (fromEl: Element | null, toEl: Element | null) => {
-          if (!fromEl || !toEl) return null;
-          const f = fromEl.getBoundingClientRect();
-          const t = toEl.getBoundingClientRect();
-          if (!f.width || !t.width) return null;
-          return { x: t.left - f.left, y: t.top - f.top, scale: t.width / f.width };
-        };
-        const measure = () => {
-          const q = (s: string) => scope.current?.querySelector(s) ?? null;
-          const wm = delta(q("[data-wordmark] h1"), document.querySelector("[data-rail-logo]"));
-          if (wm) targets.wordmark = wm;
-          const nav = delta(q("[data-hero-nav]"), document.querySelector("[data-rail-menu]"));
-          if (nav) targets.nav = nav;
-          const st = delta(q("[data-hero-stats]"), document.querySelector("[data-rail-stats]"));
-          if (st) targets.stats = st;
-          const ch = delta(q("[data-hero-charts]"), document.querySelector("[data-rail-charts]"));
-          if (ch) targets.charts = ch;
-        };
-        measure();
-        ScrollTrigger.addEventListener("refreshInit", measure);
-
         const tl = gsap.timeline({
           scrollTrigger: {
             trigger: scope.current,
             start: "top top",
-            end: "+=130%",
-            scrub: 0.6,
+            // Must match SideRail's end and the 2.15s timeline pad below.
+            // The pad is what holds the finished rail before Work arrives.
+            // Without it, GSAP treats the last fade as 100% of the pin, so the
+            // next section cuts in the moment the navbar becomes visible.
+            end: "+=190%",
+            scrub: true,
             pin: true,
             anticipatePin: 1,
             invalidateOnRefresh: true,
           },
         });
-        // PARALLAX: the room recedes further and faster than the subject, so the
-        // sandwich reads as real depth instead of two flat layers moving together.
+        // The horizontal nav labels travel into the side list (SideRail owns
+        // that move). Everything else on the hero fades in place, and only
+        // after those labels have landed — around time 0.78.
         tl.to(
           "[data-hero-scene]",
           {
-            scale: 1.2,
-            yPercent: -6,
-            filter: "blur(20px)",
-            opacity: 0.28,
+            scale: 1.14,
+            filter: "blur(8px)",
+            opacity: 0.22,
             ease: "none",
-            duration: 1,
+            duration: 0.82,
           },
-          0
+          0.12
         )
-          // Subject holds longer and blurs less — it stays the focal point.
           .to(
             "[data-hero-subject]",
             {
-              scale: 1.06,
-              yPercent: 3,
-              filter: "blur(8px)",
-              opacity: 0.5,
+              scale: 1.04,
+              filter: "blur(4px)",
+              opacity: 0.34,
               ease: "none",
-              duration: 1,
+              duration: 0.72,
             },
-            0
+            0.2
           )
-          // Headline / CTAs / taglines leave upward
-          .to("[data-hero-copy]", { yPercent: -60, opacity: 0, ease: "none", duration: 1 }, 0)
-          // Wordmark travels to the rail's logo chip and lands on it. It stays
-          // fully opaque the whole way — the handoff only reads as "the same
-          // element moved" if the eye can follow it the entire distance.
+          .to(
+            "[data-hero-copy]",
+            { opacity: 0, filter: "blur(3px)", ease: "none", duration: 0.28 },
+            0.82
+          )
           .to(
             "[data-wordmark] h1",
             {
-              x: () => targets.wordmark.x,
-              y: () => targets.wordmark.y,
-              scale: () => targets.wordmark.scale,
-              transformOrigin: "left top",
+              scale: 0.94,
+              opacity: 0,
+              filter: "blur(3px)",
+              transformOrigin: "center center",
               ease: "none",
-              duration: 1,
+              duration: 0.36,
             },
-            0
+            0.82
           )
-          // Nav travels to the rail menu, fading only at the very end so the
-          // rail's own menu can take over without a visible gap.
           .to(
-            "[data-hero-nav]",
+            "[data-hero-stats], [data-hero-charts]",
             {
-              x: () => targets.nav.x,
-              y: () => targets.nav.y,
-              scale: 0.85,
+              scale: 0.96,
+              opacity: 0,
+              filter: "blur(3px)",
+              transformOrigin: "center center",
               ease: "none",
-              duration: 1,
+              duration: 0.28,
             },
-            0
+            0.88
           )
-          .to("[data-hero-nav]", { opacity: 0, ease: "none", duration: 0.28 }, 0.72)
-          // Stat cards drift onto the rail's stats block, same handoff.
-          .to(
-            "[data-hero-stats]",
+          // Project proof waits until the rail has finished growing.
+          // Starting it with the navbar made the next scene feel like a cut.
+          .fromTo(
+            "[data-work-handoff]",
+            { yPercent: 12, scale: 0.9, opacity: 0, filter: "blur(6px)" },
             {
-              x: () => targets.stats.x,
-              y: () => targets.stats.y,
-              scale: 0.8,
+              yPercent: 0,
+              scale: 1,
+              opacity: 1,
+              filter: "blur(0px)",
               ease: "none",
-              duration: 1,
+              duration: 0.32,
             },
-            0
-          )
-          .to("[data-hero-stats]", { opacity: 0, ease: "none", duration: 0.28 }, 0.72)
-          // Charts travel to the rail's chart card, same handoff as the stats.
-          .to(
-            "[data-hero-charts]",
-            {
-              x: () => targets.charts.x,
-              y: () => targets.charts.y,
-              scale: 0.9,
-              ease: "none",
-              duration: 1,
-            },
-            0
-          )
-          .to("[data-hero-charts]", { opacity: 0, ease: "none", duration: 0.28 }, 0.72);
+            1.62
+          );
+        // Shared clock with the rail. Visuals finish before this, so the pin
+        // holds the settled navbar instead of releasing on the last fade.
+        tl.set({}, {}, 2.15);
         return () => {
-          ScrollTrigger.removeEventListener("refreshInit", measure);
           tl.scrollTrigger?.kill();
         };
       });
@@ -298,8 +337,10 @@ export default function Hero() {
         });
         return () => t.scrollTrigger?.kill();
       });
-    }, scope);
+    }
+
     return () => {
+      cancelled = true;
       clearTimeout(safety);
       ctx.revert();
     };
@@ -348,16 +389,105 @@ export default function Hero() {
         l.yTo(driftY - py * l.depth);
       }
     };
-    // Same ticker Lenis runs on — one rAF loop for the whole page, not two.
-    gsap.ticker.add(tick);
+
+    // Gated on visibility — this used to run via gsap.ticker.add(tick) for
+    // the component's whole mounted lifetime, which for Hero is the entire
+    // session: sin/cos math plus 4 quickTo setters, every single frame, even
+    // with the user scrolled 5 screens down at Contact and Hero fully
+    // off-screen. Same pattern the Ambient Glitch effect below already uses
+    // correctly — only the trigger differs (continuous loop vs. random pulse
+    // timer).
+    let ticking = false;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !ticking) {
+          ticking = true;
+          gsap.ticker.add(tick); // same rAF loop Lenis uses — never a second one
+        } else if (!entry.isIntersecting && ticking) {
+          ticking = false;
+          gsap.ticker.remove(tick);
+        }
+      },
+      { threshold: 0 }
+    );
+    io.observe(el);
 
     return () => {
-      gsap.ticker.remove(tick);
+      io.disconnect();
+      if (ticking) gsap.ticker.remove(tick);
       if (fine) window.removeEventListener("pointermove", onMove);
       layers.forEach((l) => {
         gsap.killTweensOf(l.node);
         l.node.style.willChange = ""; // never leave will-change parked on
       });
+    };
+  }, []);
+
+  // --- AMBIENT GLITCH --------------------------------------------------------
+  // The photo + subject cutout flicker briefly, at random, for as long as the
+  // hero is on screen — not a one-shot, and not continuous (continuous would
+  // read as broken, not stylistic). Reuses the SAME #hero-displace filter the
+  // intro drives; safe because the first pulse can't fire for 3.5s+ and the
+  // intro's own tween finishes by ~2.5s, so they never fight over the same
+  // attribute. Gated on IntersectionObserver, not scroll math — this only
+  // needs to know "is any of the hero visible", nothing more precise.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const section = scope.current;
+    const displace = section?.querySelector("#hero-displace");
+    if (!section || !displace) return;
+    const pxLayers = section.querySelectorAll<HTMLElement>("[data-px]");
+
+    let active = false;
+    let pending: gsap.core.Tween | null = null;
+
+    // Short and punchy — a flicker, not the intro's slow "emerging from
+    // noise" resolve. Two stepped jumps and back to clean inside ~0.3s.
+    // Filter is switched on for exactly this ~0.28s window and back to
+    // "none" the instant it ends — same reasoning as the intro: a resident
+    // SVG filter costs on every frame regardless of whether it's visually
+    // doing anything, so it should only be present while actually glitching.
+    const pulse = () => {
+      gsap
+        .timeline()
+        .set(pxLayers, { filter: "url(#hero-glitch)" })
+        .set(displace, { attr: { scale: 26 } })
+        .to(displace, { attr: { scale: 4 }, duration: 0.09, ease: "steps(3)" })
+        .to(displace, { attr: { scale: 18 }, duration: 0.06, ease: "steps(2)" })
+        .to(displace, { attr: { scale: 0 }, duration: 0.13, ease: "steps(2)" })
+        .set(pxLayers, { filter: "none" });
+    };
+
+    const scheduleNext = () => {
+      if (!active) return;
+      // 3.5-8s, randomised — a fixed interval reads mechanical, not glitchy.
+      const delay = 3.5 + Math.random() * 4.5;
+      pending = gsap.delayedCall(delay, () => {
+        pulse();
+        scheduleNext();
+      });
+    };
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (!active) {
+            active = true;
+            scheduleNext();
+          }
+        } else {
+          active = false;
+          pending?.kill();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    io.observe(section);
+
+    return () => {
+      active = false;
+      pending?.kill();
+      io.disconnect();
     };
   }, []);
 
@@ -368,6 +498,31 @@ export default function Hero() {
       data-dark
       className="relative min-h-[100svh] overflow-hidden bg-ink"
     >
+      {/* Hidden SVG filter for the boot-sequence glitch on the PHOTO + subject
+          cutout (fx=b only) — not the name. Default scale=0 so both layers
+          render clean if JS never runs; GSAP tweens the scale attribute during
+          the intro. One shared filter applied to both wrapper divs, so a
+          single tween on the one feDisplacementMap distorts both in sync.
+          The `filter: url(...)` CSS itself is applied and removed via GSAP
+          (intro + the ambient pulse below), NOT resident in the JSX — an SVG
+          filter forces its element into software rasterize/composite for as
+          long as it's present, whether or not it's currently displacing
+          anything, so it should only be on during the ~2s boot window and
+          each ~0.3s ambient pulse, not for the component's entire lifetime. */}
+      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
+        <filter id="hero-glitch">
+          <feTurbulence type="fractalNoise" baseFrequency="0.01 0.8" numOctaves="1" seed="3" result="noise" />
+          <feDisplacementMap
+            id="hero-displace"
+            in="SourceGraphic"
+            in2="noise"
+            scale="0"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </svg>
+
       {/* Layer 1 — room scene.
           The wrapper carries PARALLAX, the <img> carries the scrub timeline.
           They must stay on separate elements: both write `transform`, so
@@ -478,10 +633,51 @@ export default function Hero() {
         }}
       />
 
-      <div className="absolute inset-0 z-30">
-        {/* Split nav on the wordmark baseline */}
-        <nav data-hero-nav className="absolute inset-x-0 top-[47%] hidden items-center justify-between px-6 text-xl font-semibold text-[#fff5f5] will-change-transform lg:flex lg:px-10">
-          <div data-hero-fade className="flex items-center">
+      {/* Project-scene overlap. Hidden on small screens where the hero is not
+          pinned; Work follows through normal document flow there. */}
+      <div
+        data-work-handoff
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-[8%] left-[428px] top-[18%] z-[25] hidden w-[460px] overflow-hidden rounded-card border border-white/15 bg-ink/70 opacity-0 shadow-[0_30px_90px_rgba(10,4,6,0.45)] will-change-[transform,filter] lg:block"
+        style={{ transform: "translateY(8%) scale(0.985)", filter: "blur(3px)" }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/work/${projects[0].slug}.jpg`}
+          alt=""
+          className="h-full w-full object-contain object-center"
+        />
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/75 to-transparent px-7 pb-6 pt-16">
+          <p className="font-display text-3xl font-semibold text-[#fff5f5]">
+            {projects[0].name}
+          </p>
+          <p className="mt-1 text-sm text-[#fff5f5]/70">{projects[0].role}</p>
+        </div>
+      </div>
+
+      {/* Layer 4c — boot-sequence static burst (fx=b only). Same feTurbulence
+          noise recipe as the permanent grain above, but opaque and brief —
+          clears within ~0.5s as the name starts resolving. Defaults to
+          opacity 0 so if JS never runs, nothing appears; GSAP drives the
+          reveal + decay from inside the intro timeline, gated to fx==="b". */}
+      <div
+        data-hero-static
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-40"
+        style={{
+          opacity: 0,
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='ns'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23ns)'/%3E%3C/svg%3E\")",
+          backgroundSize: "140px 140px",
+        }}
+      />
+
+      {/* Outside the z-30 hero layer so these words can travel above the rail. */}
+      <nav
+        data-hero-nav
+        className="fixed inset-x-0 top-[47%] z-[70] hidden items-center justify-between px-6 text-xl font-semibold text-[#fff5f5] lg:flex lg:px-10"
+      >
+          <div data-hero-fade data-hero-nav-left className="flex items-center will-change-[transform,filter]">
             {leftNav.map((l, i) => (
               <a
                 key={l.label}
@@ -494,7 +690,7 @@ export default function Hero() {
               </a>
             ))}
           </div>
-          <div data-hero-fade className="flex items-center">
+          <div data-hero-fade data-hero-nav-right className="flex items-center will-change-[transform,filter]">
             {rightNav.map((l, i) => (
               <a
                 key={l.label}
@@ -509,9 +705,18 @@ export default function Hero() {
           </div>
         </nav>
 
+      <div className="absolute inset-0 z-30">
         {/* Frosted stat cards, left */}
-        <div data-hero-stats className="absolute bottom-[26%] left-6 hidden flex-col gap-3 will-change-transform lg:flex lg:left-10">
-          <div data-hero-fade className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-3 backdrop-blur-md">
+        {/* bottom-[26%] with 2 cards never collided with the nav above (which
+            is pinned to the wordmark baseline at top-47%). Adding the 3rd
+            card grew this block ~76px taller without anyone re-checking that
+            headroom — on any laptop-height screen (1366x768 and smaller are
+            common, not edge cases) the two now overlap. Pushed lower
+            (bottom-[26%] -> [15%]) and tightened (gap-3->gap-2, py-3->py-2.5
+            on each card) rather than moving the nav, which is deliberately
+            anchored to the wordmark. */}
+        <div data-hero-stats className="absolute bottom-[15%] left-6 hidden flex-col gap-2 will-change-transform lg:flex lg:left-10">
+          <div data-hero-fade className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-2.5 backdrop-blur-md">
             <span className="text-3xl font-extrabold text-ultra-ink">5</span>
             <span className="text-xs leading-tight text-[#fff5f5]/80">
               Live production
@@ -519,12 +724,23 @@ export default function Hero() {
               systems
             </span>
           </div>
-          <div data-hero-fade className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-3 backdrop-blur-md">
+          <div data-hero-fade className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-2.5 backdrop-blur-md">
             <span className="text-3xl font-extrabold text-ultra-ink">1yr</span>
             <span className="text-xs leading-tight text-[#fff5f5]/80">
               Sole dev at
               <br />
               Lama Group
+            </span>
+          </div>
+          {/* Third stat, matching SideRail's `stats` array exactly — this one
+              was missing from the hero even though the rail (which these fly
+              into on scroll) has had it all along. */}
+          <div data-hero-fade className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-2.5 backdrop-blur-md">
+            <span className="text-3xl font-extrabold text-ultra-ink">2yrs</span>
+            <span className="text-xs leading-tight text-[#fff5f5]/80">
+              Design before
+              <br />
+              dev
             </span>
           </div>
         </div>
@@ -550,16 +766,25 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Centred headline + CTAs */}
+        {/* Centred headline + CTAs. data-hero-primary (in ADDITION to
+            data-hero-fade): these two get their own fast, guaranteed-early
+            timing — see the intro timeline. Left in the general stagger
+            group they were 7th/8th of 10, so even an early absolute position
+            still landed the actual clickable CTA around 1.77s in. */}
         <div data-hero-copy className="absolute inset-x-0 bottom-[12%] flex flex-col items-center px-6 text-center will-change-transform">
           <p
             data-hero-fade
+            data-hero-primary
             className="font-display max-w-3xl text-4xl font-bold leading-[1.0] tracking-[-0.005em] text-[#fff5f5] sm:text-6xl"
           >
-            I build the backend
-            <br className="hidden sm:block" /> products run on.
+            I build systems
+            <br className="hidden sm:block" /> that run themselves.
           </p>
-          <div data-hero-fade className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          <div
+            data-hero-fade
+            data-hero-primary
+            className="mt-7 flex flex-wrap items-center justify-center gap-3"
+          >
             <a
               href="#work"
               className="rounded-full bg-signal px-7 py-3.5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
@@ -581,7 +806,7 @@ export default function Hero() {
           data-hero-copy
           className="absolute bottom-6 left-6 hidden font-mono text-xs leading-relaxed text-[#fff5f5]/70 lg:left-10 lg:block"
         >
-          The backend developer.
+          The systems developer.
           <br />
           That&apos;s Sachit.
         </p>
