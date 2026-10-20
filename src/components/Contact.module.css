@@ -1,0 +1,5 @@
+.badge { position: absolute; z-index: 2; top: 0; right: -100px; width: 560px; height: 400px; margin: 0; }
+@media (max-width: 1023px) {
+  .badge { right: 50%; width: min(100%, 360px); height: 350px; transform: translateX(50%); }
+  .body { padding-top: 300px; }
+}

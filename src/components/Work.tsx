@@ -6,7 +6,6 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 import { projects } from "@/lib/projects";
 import ProjectCard from "./ProjectCard";
 import LineReveal from "./LineReveal";
-import Reveal from "./Reveal";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -24,10 +23,14 @@ export default function Work() {
         const sec = section.current;
         if (!t || !sec) return;
         // Measure against the track's own container, not the window — the whole
-        // page sits in a 332px left inset for the rail, so window.innerWidth
+        // page sits in a left inset for the rail, so window.innerWidth
         // overstates the visible width and the track stops short.
         const distance = () =>
           Math.max(0, t.scrollWidth - (t.parentElement?.clientWidth ?? 0) + 40);
+        // Work now follows the hero directly, so its own top is the correct
+        // pin boundary. The previous 610px delay existed only to wait for the
+        // Skills cards that used to precede it; keeping that offset after the
+        // proof-first reorder would create a dead gap before the project film.
         const tween = gsap.to(t, {
           x: () => -distance(),
           ease: "none",
@@ -61,7 +64,11 @@ export default function Work() {
         duration: 0.5,
         ease: "power3.out",
         stagger: 0.07,
-        scrollTrigger: { trigger: track.current, start: "top 90%", once: true },
+        scrollTrigger: {
+          trigger: track.current,
+          start: "top 90%",
+          toggleActions: "play none none reverse",
+        },
       });
     }, section);
     return () => ctx.revert();
@@ -70,26 +77,23 @@ export default function Work() {
   return (
     <section
       id="work"
+      data-dark
       ref={section}
-      className="relative py-24 text-text-paper lg:flex lg:h-screen lg:flex-col lg:justify-center lg:overflow-hidden lg:py-0"
+      className="relative bg-ink py-24 text-text-ink lg:pl-[288px] lg:flex lg:h-screen lg:flex-col lg:justify-center lg:overflow-hidden lg:py-0"
     >
       <div className="mb-10 px-6 sm:px-10">
-        <Reveal>
-          <span className="inline-block w-fit rounded-full border border-border-paper px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-ultra">
-            Selected work
-          </span>
-        </Reveal>
         <LineReveal
-          lines={["Built for production.", "Made to last."]}
+          lines={["Websites &", "internal tools."]}
           className="font-display mt-5 max-w-4xl text-5xl font-medium leading-[0.92] tracking-[-0.015em] sm:text-7xl"
         />
       </div>
 
       {/* min-h-0 is what lets flex-1 actually shrink here — without it the track
           keeps its content height and overflows the pinned viewport. */}
-      <div className="lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:pb-10">
+      <div data-work-viewport className="lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:pb-10">
         <div
           ref={track}
+          data-work-track
           className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-4 will-change-transform sm:px-10 lg:h-full lg:overflow-x-visible lg:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {projects.map((p, i) => (

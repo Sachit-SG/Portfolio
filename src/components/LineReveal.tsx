@@ -32,7 +32,11 @@ export default function LineReveal({
         duration: 0.7,
         ease: "power3.out",
         stagger: 0.08,
-        scrollTrigger: { trigger: ref.current, start, once: true },
+        scrollTrigger: {
+          trigger: ref.current,
+          start,
+          toggleActions: "play none none reverse",
+        },
       });
     }, ref);
     return () => ctx.revert();

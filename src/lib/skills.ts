@@ -19,7 +19,9 @@ export type Skill = {
   evidence: string;
 };
 
-/** The radial. Ordered to lead with the backend story the hero claims. */
+/** The radial. Ordered to lead with the systems story the hero claims.
+ *  NOTE: still has no AI-automation entry, which now contradicts the hero and
+ *  the lead Skills card. Needs a real, defensible row before it matches. */
 export const coreSkills: Skill[] = [
   { label: "Next.js", value: 5, evidence: "4 of 5 shipped systems" },
   { label: "Node · Express", value: 4, evidence: "internal APIs, Retail HR" },

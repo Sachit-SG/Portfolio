@@ -89,11 +89,20 @@ export default function AmbientBackdrop() {
       aria-hidden="true"
       className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-paper"
     >
+      {/* Pre-blurred offline (Pillow, GaussianBlur r=35 on a half-res copy —
+          equivalent to blur(70px) at full res once re-scaled up here) instead
+          of a runtime `blur-[70px]`. A live 70px CSS blur on a `fixed`,
+          full-viewport element sits in the expensive filter/rasterize path
+          for the ENTIRE session, every section, forever — the most costly
+          always-on effect on the site. Baking the blur into the asset removes
+          that cost outright: this now just paints like any other image.
+          Bonus: the blurred file has no fine detail left to encode, so it
+          dropped from 427KB to 10KB. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/hero-scene-red.jpg"
+        src="/hero-scene-red-blurred.jpg"
         alt=""
-        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-[0.06] blur-[70px]"
+        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-[0.06]"
       />
       {/* The single moving light. Positioned with left/top ONLY — no centring
           transform — because GSAP owns `transform` on this node. A radial
