@@ -23,7 +23,7 @@ export default function Work() {
         const sec = section.current;
         if (!t || !sec) return;
         // Measure against the track's own container, not the window — the whole
-        // page sits in a 332px left inset for the rail, so window.innerWidth
+        // page sits in a left inset for the rail, so window.innerWidth
         // overstates the visible width and the track stops short.
         const distance = () =>
           Math.max(0, t.scrollWidth - (t.parentElement?.clientWidth ?? 0) + 40);
@@ -79,20 +79,21 @@ export default function Work() {
       id="work"
       data-dark
       ref={section}
-      className="relative bg-ink py-24 text-text-ink lg:pl-[388px] lg:flex lg:h-screen lg:flex-col lg:justify-center lg:overflow-hidden lg:py-0"
+      className="relative bg-ink py-24 text-text-ink lg:pl-[288px] lg:flex lg:h-screen lg:flex-col lg:justify-center lg:overflow-hidden lg:py-0"
     >
       <div className="mb-10 px-6 sm:px-10">
         <LineReveal
-          lines={["Built for production.", "Made to last."]}
+          lines={["Websites &", "internal tools."]}
           className="font-display mt-5 max-w-4xl text-5xl font-medium leading-[0.92] tracking-[-0.015em] sm:text-7xl"
         />
       </div>
 
       {/* min-h-0 is what lets flex-1 actually shrink here — without it the track
           keeps its content height and overflows the pinned viewport. */}
-      <div className="lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:pb-10">
+      <div data-work-viewport className="lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:pb-10">
         <div
           ref={track}
+          data-work-track
           className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-4 will-change-transform sm:px-10 lg:h-full lg:overflow-x-visible lg:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {projects.map((p, i) => (

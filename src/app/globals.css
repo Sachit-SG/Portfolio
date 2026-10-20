@@ -34,7 +34,7 @@
   --ultra-bright: #e03131; /* brighter red — LARGE display text on light only. 3.77:1 on
                               paper-card: clears AA for 24px+/18.66px-bold, FAILS for body.
                               Never use this on small text — use --ultra there. */
-  --ultra-ink: #ff6b6b;    /* bright red — text/marks on DARK only (7.02:1). Never behind white text. */
+  --ultra-ink: #ff5555;    /* saturated red — text/marks on DARK only (6.20:1). Never behind white text. */
   /* BRAND FILL — logo chip, CTAs, buttons, dots. This is the vibrant deep red
      the identity is built on. It carries WHITE text, NOT red text, so it does
      not share --ultra's small-text constraint: white on #d92626 is 4.93:1.
@@ -46,6 +46,8 @@
   /* borders */
   --border-paper: rgba(26, 16, 17, 0.13);
   --border-ink: rgba(255, 245, 245, 0.14);
+  --desktop-rail-width: 280px;
+  --desktop-content-inset: calc(24px + var(--desktop-rail-width) + 32px);
 }
 
 @theme inline {
@@ -65,11 +67,11 @@
   --color-border-ink: var(--border-ink);
   /* Radius system — deliberate, semantic. `rounded-card` is OUR value; leaving
      Tailwind's own scale (rounded-xl etc.) untouched so it means what everyone
-     expects. Cards 10px = heynesh's 7-11px band, rhymes with Clash's squared
-     terminals; sharp cards vs full pills IS the system.
-       rounded-lg   = 8px  chips / logo / small controls
-       rounded-card = 10px all cards & panels
-       rounded-full = pills CTAs
+     expects. Surfaces stay in an 8-10px band; actions have 8px corners.
+     Full rounding is reserved for semantic tags and circular icon controls.
+       rounded-lg   = 8px  controls / logos
+       rounded-card = 10px large cards and panels
+       rounded-full = small tags and circular controls
        rounded-[3px] meter dots */
   --radius-card: 0.625rem;
   /* Two-face system: Clash Display carries identity on the big type, Switzer
@@ -78,6 +80,7 @@
   --font-sans: var(--font-switzer);
   --font-display: var(--font-clash);
   --font-mono: var(--font-geist-mono);
+  --font-ui: var(--font-plex);
 }
 
 html {
@@ -183,42 +186,105 @@ body {
   }
 }
 
-/* Adaptive rail theme — the rail is fixed over whatever section scrolls behind
-   it. Over the dark hero its light translucent panels turn muddy and the text
-   drops below readable contrast. So it flips: light panels over paper sections,
-   dark panels over dark sections (same idea as darkening the hero glass so the
-   red reads). SideRail sets data-behind from the section under the rail's
-   vertical centre. */
-/* Vars live on EACH card, not the root, so cards flip individually as they
-   each reach a dark section — the bottom cards (buttons, email) hit it first
-   when scrolling down, so the rail recolours bottom-up in sequence rather than
-   all at once. --rail-seg-track is the meter's black bar: transparent on light
-   (a black bar on cream looks bad), black on dark (the red-on-black look). */
-[data-rail-card] {
-  --rail-card: rgba(244, 232, 229, 0.94);
-  --rail-card-soft: rgba(244, 232, 229, 0.9);
+/* The whole rail has one surface, not independently flipping card shades. */
+.rail-digit-window { display: inline-block; width: 1ch; height: 1em; overflow: hidden; text-align: center; }
+.rail-digit-track { display: flex; flex-direction: column; transform: translateY(var(--digit-offset)); }
+.rail-digit-step { display: block; flex: 0 0 1em; height: 1em; line-height: 1; }
+[data-rail-root] {
+  --rail-card: rgba(244, 232, 229, 0.96);
   --rail-fg: #1a1011;
   --rail-muted: #665557;
   --rail-border: rgba(26, 16, 17, 0.13);
+  --rail-accent: #ad2121;
+  --rail-fill: #d92626;
   --rail-seg-on: #d92626;
   --rail-seg-off: rgba(26, 16, 17, 0.16);
   --rail-seg-track: transparent;
 }
-[data-rail-card][data-behind="dark"] {
-  --rail-card: rgba(20, 10, 12, 0.66);
-  --rail-card-soft: rgba(20, 10, 12, 0.52);
+[data-rail-root][data-behind="dark"] {
+  --rail-card: rgba(20, 10, 12, 0.86);
   --rail-fg: #fff5f5;
   --rail-muted: #b09a9c;
   --rail-border: rgba(255, 245, 245, 0.16);
-  --rail-seg-on: #ff6b6b;
+  --rail-accent: #ff5555;
+  --rail-fill: #d92626;
+  --rail-seg-on: #d92626;
   --rail-seg-off: #2a1517;
   --rail-seg-track: #140a0c;
 }
-/* Smooth the swap so it cross-fades as you scroll a boundary, not a hard cut. */
-[data-rail-card],
-[data-rail-card] * {
+[data-rail-root],
+[data-rail-root] * {
   transition: background-color 0.35s ease, color 0.35s ease,
     border-color 0.35s ease;
+}
+.rail-card {
+  border: 1px solid var(--rail-border);
+  border-radius: 8px;
+  background: var(--rail-card);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 8px 24px rgba(20, 10, 12, .10);
+}
+.rail-social {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--rail-border);
+  border-radius: 6px;
+  color: var(--rail-fg);
+  font: 800 10px/1 var(--font-sans), sans-serif;
+}
+.rail-social:hover { color: var(--rail-accent); border-color: var(--rail-accent); }
+.rail-social:focus-visible, .rail-email:focus-visible { outline: 2px solid var(--rail-accent); outline-offset: 3px; }
+.rail-email {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--rail-fill);
+  color: #fff5f5;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.rail-email:hover { background: #b91f1f; }
+[data-rail-link] { min-height: 44px; flex: 0 0 44px; font-size: 20px; }
+[data-rail-link][data-active="true"] { color: var(--rail-accent); }
+[data-rail-link][data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  background: var(--rail-accent);
+}
+.portfolio-rail { position: fixed; z-index: 50; top: 50%; left: 24px; translate: 0 -50%; width: var(--desktop-rail-width); max-height: calc(100svh - 48px); display: none; gap: 8px; grid-auto-rows: max-content; pointer-events: none; }
+.portfolio-rail[data-ready="true"] { pointer-events: auto; }
+.rail-bio { display: block; }
+[data-rail-root][data-ready="false"] [data-skill-meters] [data-seg="tip"] { animation-play-state: paused; }
+@media (min-width: 1280px) and (min-height: 700px) {
+  .portfolio-rail { display: grid; }
+  [data-compact-nav] { display: none; }
+  #work, #skills, #approach, #services, #contact { padding-left: var(--desktop-content-inset); }
+}
+@media (min-width: 1280px) and (min-height: 700px) and (max-height: 799px) {
+  .portfolio-rail { gap: 6px; }
+  .portfolio-rail > [data-rail-card]:first-child { padding-block: 6px; }
+  .portfolio-rail [data-rail-stats] { padding-block: 8px; }
+  .portfolio-rail [data-rail-menu] { padding-block: 6px; }
+  .portfolio-rail [data-rail-link] { min-height: 36px; flex-basis: 36px; }
+  .portfolio-rail [data-rail-meters] { padding-block: 6px; }
+  .portfolio-rail > [data-rail-card]:last-child { padding: 6px; }
+}
+@media (max-height: 699px) {
+  #work, #skills, #approach, #services, #contact { padding-left: clamp(24px, 4vw, 72px); }
+  [data-hero-nav], [data-hero-stats], [data-hero-charts] { display: none; }
+}
+@media (max-width: 1279px) {
+  #work, #skills, #approach, #services, #contact { padding-left: clamp(24px, 4vw, 72px); }
+  [data-hero-nav], [data-hero-stats], [data-hero-charts] { display: none; }
 }
 
 /* Skills running line: when the line reaches a card (scroll-driven), its icon
@@ -227,7 +293,6 @@ body {
   color: var(--ultra-bright);
   transform: scale(1.1);
 }
-
 /* The side rail starts hidden ONLY when it will be animated in. Under reduced
    motion (or if the scroll timeline never builds) it stays visible by default,
    so navigation can never strand invisible. */
@@ -245,6 +310,24 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Without the horizontal pin, every desktop project must remain in normal
+   document flow. Restore media height too: flex-only media needs a sized pin. */
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+  #work { height: auto; padding-block: 6rem; }
+  #work [data-work-viewport] { overflow: visible; }
+  #work [data-work-track] {
+    height: auto;
+    flex-wrap: wrap;
+    overflow: visible;
+    will-change: auto;
+  }
+  #work [data-project-card] { height: auto; max-width: 100%; }
+  #work [data-project-card] > div:first-child {
+    aspect-ratio: 4 / 5;
+    flex: none;
   }
 }
 

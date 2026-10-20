@@ -32,9 +32,18 @@ export default function Hero() {
   const scope = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const hero = scope.current;
+    const ready = () => {
+      if (hero) hero.dataset.heroReady = "true";
+      window.dispatchEvent(new Event("portfolio:hero-ready"));
+    };
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      ready();
+      return;
+    }
     let safety: ReturnType<typeof setTimeout>;
     let cancelled = false;
+    let finishIntro = () => {};
     const ctx = gsap.context(() => {}, scope);
 
     // Everything below — the width-lock especially — depends on the REAL
@@ -68,6 +77,9 @@ export default function Hero() {
       // 6 chars x 0.08 = 0.48s stagger is just under the hard 500ms limit.
       const fx = new URLSearchParams(window.location.search).get("fx") || "b";
       const intro = gsap.timeline();
+      intro.eventCallback("onComplete", ready);
+      finishIntro = () => { if (window.scrollY > 0) intro.progress(1); };
+      window.addEventListener("scroll", finishIntro, { once: true, passive: true });
       const chars = gsap.utils.toArray<HTMLElement>("[data-char]");
 
       if (fx === "b") {
@@ -223,125 +235,15 @@ export default function Hero() {
         if (intro.progress() < 1) intro.progress(1);
       }, 5000);
 
-      // --- PINNED transition -------------------------------------------------
-      // The hero holds still while the scene dissolves and the chrome migrates
-      // into the rail. Without the pin the page scrolls away before any of it
-      // is visible.
-      const mm = gsap.matchMedia();
-      mm.add("(min-width: 1024px)", () => {
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: scope.current,
-            start: "top top",
-            // Must match SideRail's end and the 2.15s timeline pad below.
-            // The pad is what holds the finished rail before Work arrives.
-            // Without it, GSAP treats the last fade as 100% of the pin, so the
-            // next section cuts in the moment the navbar becomes visible.
-            end: "+=190%",
-            scrub: true,
-            pin: true,
-            anticipatePin: 1,
-            invalidateOnRefresh: true,
-          },
-        });
-        // The horizontal nav labels travel into the side list (SideRail owns
-        // that move). Everything else on the hero fades in place, and only
-        // after those labels have landed — around time 0.78.
-        tl.to(
-          "[data-hero-scene]",
-          {
-            scale: 1.14,
-            filter: "blur(8px)",
-            opacity: 0.22,
-            ease: "none",
-            duration: 0.82,
-          },
-          0.12
-        )
-          .to(
-            "[data-hero-subject]",
-            {
-              scale: 1.04,
-              filter: "blur(4px)",
-              opacity: 0.34,
-              ease: "none",
-              duration: 0.72,
-            },
-            0.2
-          )
-          .to(
-            "[data-hero-copy]",
-            { opacity: 0, filter: "blur(3px)", ease: "none", duration: 0.28 },
-            0.82
-          )
-          .to(
-            "[data-wordmark] h1",
-            {
-              scale: 0.94,
-              opacity: 0,
-              filter: "blur(3px)",
-              transformOrigin: "center center",
-              ease: "none",
-              duration: 0.36,
-            },
-            0.82
-          )
-          .to(
-            "[data-hero-stats], [data-hero-charts]",
-            {
-              scale: 0.96,
-              opacity: 0,
-              filter: "blur(3px)",
-              transformOrigin: "center center",
-              ease: "none",
-              duration: 0.28,
-            },
-            0.88
-          )
-          // Project proof waits until the rail has finished growing.
-          // Starting it with the navbar made the next scene feel like a cut.
-          .fromTo(
-            "[data-work-handoff]",
-            { yPercent: 12, scale: 0.9, opacity: 0, filter: "blur(6px)" },
-            {
-              yPercent: 0,
-              scale: 1,
-              opacity: 1,
-              filter: "blur(0px)",
-              ease: "none",
-              duration: 0.32,
-            },
-            1.62
-          );
-        // Shared clock with the rail. Visuals finish before this, so the pin
-        // holds the settled navbar instead of releasing on the last fade.
-        tl.set({}, {}, 2.15);
-        return () => {
-          tl.scrollTrigger?.kill();
-        };
-      });
-
-      // Mobile: no pin, just a gentle dissolve
-      mm.add("(max-width: 1023px)", () => {
-        const t = gsap.to("[data-hero-media]", {
-          scale: 1.1,
-          filter: "blur(12px)",
-          opacity: 0.4,
-          ease: "none",
-          scrollTrigger: {
-            trigger: scope.current,
-            start: "top top",
-            end: "bottom top",
-            scrub: true,
-          },
-        });
-        return () => t.scrollTrigger?.kill();
-      });
+      // SideRail owns the complete scroll handoff. The intro owns only load-in.
+      if (window.location.hash) intro.progress(1);
     }
 
     return () => {
       cancelled = true;
       clearTimeout(safety);
+      window.removeEventListener("scroll", finishIntro);
+      if (hero) delete hero.dataset.heroReady;
       ctx.revert();
     };
   }, []);
@@ -398,22 +300,28 @@ export default function Hero() {
     // correctly — only the trigger differs (continuous loop vs. random pulse
     // timer).
     let ticking = false;
+    let inView = false;
+    const sync = () => {
+      const shouldTick = inView && !document.hidden && el.dataset.handoffActive !== "true";
+      if (shouldTick === ticking) return;
+      ticking = shouldTick;
+      if (ticking) gsap.ticker.add(tick); else gsap.ticker.remove(tick);
+    };
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !ticking) {
-          ticking = true;
-          gsap.ticker.add(tick); // same rAF loop Lenis uses — never a second one
-        } else if (!entry.isIntersecting && ticking) {
-          ticking = false;
-          gsap.ticker.remove(tick);
-        }
+        inView = entry.isIntersecting;
+        sync();
       },
       { threshold: 0 }
     );
     io.observe(el);
+    window.addEventListener("portfolio:handoff-state", sync);
+    document.addEventListener("visibilitychange", sync);
 
     return () => {
       io.disconnect();
+      window.removeEventListener("portfolio:handoff-state", sync);
+      document.removeEventListener("visibilitychange", sync);
       if (ticking) gsap.ticker.remove(tick);
       if (fine) window.removeEventListener("pointermove", onMove);
       layers.forEach((l) => {
@@ -459,11 +367,11 @@ export default function Hero() {
     };
 
     const scheduleNext = () => {
-      if (!active) return;
+      if (!active || document.hidden || section.dataset.handoffActive === "true") return;
       // 3.5-8s, randomised — a fixed interval reads mechanical, not glitchy.
       const delay = 3.5 + Math.random() * 4.5;
       pending = gsap.delayedCall(delay, () => {
-        pulse();
+        if (!document.hidden && section.dataset.handoffActive !== "true") pulse();
         scheduleNext();
       });
     };
@@ -483,11 +391,16 @@ export default function Hero() {
       { threshold: 0.1 }
     );
     io.observe(section);
+    const resume = () => { pending?.kill(); scheduleNext(); };
+    window.addEventListener("portfolio:handoff-state", resume);
+    document.addEventListener("visibilitychange", resume);
 
     return () => {
       active = false;
       pending?.kill();
       io.disconnect();
+      window.removeEventListener("portfolio:handoff-state", resume);
+      document.removeEventListener("visibilitychange", resume);
     };
   }, []);
 
@@ -633,28 +546,6 @@ export default function Hero() {
         }}
       />
 
-      {/* Project-scene overlap. Hidden on small screens where the hero is not
-          pinned; Work follows through normal document flow there. */}
-      <div
-        data-work-handoff
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-[8%] left-[428px] top-[18%] z-[25] hidden w-[460px] overflow-hidden rounded-card border border-white/15 bg-ink/70 opacity-0 shadow-[0_30px_90px_rgba(10,4,6,0.45)] will-change-[transform,filter] lg:block"
-        style={{ transform: "translateY(8%) scale(0.985)", filter: "blur(3px)" }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`/work/${projects[0].slug}.jpg`}
-          alt=""
-          className="h-full w-full object-contain object-center"
-        />
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/75 to-transparent px-7 pb-6 pt-16">
-          <p className="font-display text-3xl font-semibold text-[#fff5f5]">
-            {projects[0].name}
-          </p>
-          <p className="mt-1 text-sm text-[#fff5f5]/70">{projects[0].role}</p>
-        </div>
-      </div>
-
       {/* Layer 4c — boot-sequence static burst (fx=b only). Same feTurbulence
           noise recipe as the permanent grain above, but opaque and brief —
           clears within ~0.5s as the name starts resolving. Defaults to
@@ -675,7 +566,7 @@ export default function Hero() {
       {/* Outside the z-30 hero layer so these words can travel above the rail. */}
       <nav
         data-hero-nav
-        className="fixed inset-x-0 top-[47%] z-[70] hidden items-center justify-between px-6 text-xl font-semibold text-[#fff5f5] lg:flex lg:px-10"
+        className="absolute inset-x-0 top-[47%] z-[70] hidden items-center justify-between px-6 text-xl font-semibold text-[#fff5f5] lg:flex lg:px-10"
       >
           <div data-hero-fade data-hero-nav-left className="flex items-center will-change-[transform,filter]">
             {leftNav.map((l, i) => (
@@ -686,7 +577,7 @@ export default function Hero() {
                   i > 0 ? "border-l border-white/25" : ""
                 }`}
               >
-                {l.label}
+                <span data-hero-link-label className="inline-block">{l.label}</span>
               </a>
             ))}
           </div>
@@ -699,7 +590,7 @@ export default function Hero() {
                   i > 0 ? "border-l border-white/25" : ""
                 }`}
               >
-                {l.label}
+                <span data-hero-link-label className="inline-block">{l.label}</span>
               </a>
             ))}
           </div>
@@ -716,17 +607,17 @@ export default function Hero() {
             on each card) rather than moving the nav, which is deliberately
             anchored to the wordmark. */}
         <div data-hero-stats className="absolute bottom-[15%] left-6 hidden flex-col gap-2 will-change-transform lg:flex lg:left-10">
-          <div data-hero-fade className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-2.5 backdrop-blur-md">
-            <span className="text-3xl font-extrabold text-ultra-ink">5</span>
-            <span className="text-xs leading-tight text-[#fff5f5]/80">
-              Live production
+          <div data-hero-fade data-hero-stat className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-2.5 backdrop-blur-md">
+            <span data-hero-stat-value className="text-3xl font-extrabold text-ultra-ink">{projects.length}</span>
+            <span data-hero-stat-label className="text-xs leading-tight text-[#fff5f5]/80">
+              Selected
               <br />
-              systems
+              projects
             </span>
           </div>
-          <div data-hero-fade className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-2.5 backdrop-blur-md">
-            <span className="text-3xl font-extrabold text-ultra-ink">1yr</span>
-            <span className="text-xs leading-tight text-[#fff5f5]/80">
+          <div data-hero-fade data-hero-stat className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-2.5 backdrop-blur-md">
+            <span data-hero-stat-value className="text-3xl font-extrabold text-ultra-ink">1yr</span>
+            <span data-hero-stat-label className="text-xs leading-tight text-[#fff5f5]/80">
               Sole dev at
               <br />
               Lama Group
@@ -735,9 +626,9 @@ export default function Hero() {
           {/* Third stat, matching SideRail's `stats` array exactly — this one
               was missing from the hero even though the rail (which these fly
               into on scroll) has had it all along. */}
-          <div data-hero-fade className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-2.5 backdrop-blur-md">
-            <span className="text-3xl font-extrabold text-ultra-ink">2yrs</span>
-            <span className="text-xs leading-tight text-[#fff5f5]/80">
+          <div data-hero-fade data-hero-stat className="flex items-center gap-3 rounded-card border border-white/10 bg-ink/55 px-5 py-2.5 backdrop-blur-md">
+            <span data-hero-stat-value className="text-3xl font-extrabold text-ultra-ink">2yrs</span>
+            <span data-hero-stat-label className="text-xs leading-tight text-[#fff5f5]/80">
               Design before
               <br />
               dev
@@ -777,8 +668,8 @@ export default function Hero() {
             data-hero-primary
             className="font-display max-w-3xl text-4xl font-bold leading-[1.0] tracking-[-0.005em] text-[#fff5f5] sm:text-6xl"
           >
-            I build systems
-            <br className="hidden sm:block" /> that run themselves.
+            I build websites
+            <br className="hidden sm:block" /> and internal tools.
           </p>
           <div
             data-hero-fade
@@ -787,13 +678,13 @@ export default function Hero() {
           >
             <a
               href="#work"
-              className="rounded-full bg-signal px-7 py-3.5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
+              className="rounded-[8px] bg-signal px-7 py-3.5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
             >
               See the work
             </a>
             <a
               href="#contact"
-              className="rounded-full border border-white/25 px-7 py-3.5 text-sm font-bold text-[#fff5f5] transition-colors hover:border-ultra-ink hover:text-ultra-ink"
+              className="rounded-[8px] border border-white/25 px-7 py-3.5 text-sm font-bold text-[#fff5f5] transition-colors hover:border-ultra-ink hover:text-ultra-ink"
             >
               Get in touch
             </a>
@@ -815,8 +706,7 @@ export default function Hero() {
           data-hero-copy
           className="absolute bottom-6 right-6 hidden max-w-[15rem] text-right text-xs leading-relaxed text-[#fff5f5]/70 lg:right-10 lg:block"
         >
-          Building production systems remotely from Kathmandu — Node, PostgreSQL,
-          and the APIs between them.
+          Based in Kathmandu. Working with Next.js, Node.js and PostgreSQL.
         </p>
       </div>
     </section>

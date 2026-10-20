@@ -18,18 +18,20 @@ import { coreSkills, supportingSkills, SKILL_SCALE_LABEL } from "@/lib/skills";
 export default function SkillMeters({
   tone = "ink",
   compact = false,
+  dense = false,
   className = "",
 }: {
   // "auto" reads the adaptive rail vars so the meter flips with the rail theme.
   tone?: "ink" | "paper" | "auto";
   compact?: boolean;
+  dense?: boolean;
   className?: string;
 }) {
   const on =
     tone === "auto"
       ? "var(--rail-seg-on)"
       : tone === "ink"
-        ? "#ff6b6b"
+        ? "var(--ultra-ink)"
         : "#d92626";
   // Empty segments + the track flip with the theme: red-on-black over dark, but
   // no harsh black bar over a light section (looks wrong on cream).
@@ -62,14 +64,14 @@ export default function SkillMeters({
 
   return (
     <div className={className} data-skill-meters>
-      <ul className="flex flex-col gap-2">
+      <ul className={`flex flex-col ${dense ? "gap-1.5" : "gap-2"}`}>
         {rows.map((s) => (
-          <li key={s.label} className="flex items-center gap-3">
-            <span className={`w-[86px] shrink-0 truncate text-[11px] ${label}`}>
+          <li key={s.label} className={`flex items-center ${dense ? "gap-1.5" : "gap-3"}`}>
+            <span className={`${dense ? "w-[70px] text-[10px]" : "w-[86px] text-[11px]"} shrink-0 truncate ${label}`}>
               {s.label}
             </span>
             <span
-              className="flex flex-1 gap-1.5 p-1"
+              className={`flex flex-1 ${dense ? "gap-1 p-0.5" : "gap-1.5 p-1"}`}
               style={{ background: track }}
               role="img"
               aria-label={`${s.label}: ${s.value} of 5`}
@@ -83,7 +85,7 @@ export default function SkillMeters({
                     data-seg={tip ? "tip" : filled ? "on" : "off"}
                     // Sharp squares in a black track: filled = red, empty =
                     // near-black. The tip blinks red↔dark, reading as red/black.
-                    className="h-2.5 w-2.5 shrink-0"
+                    className={`${dense ? "h-2 w-2" : "h-2.5 w-2.5"} shrink-0`}
                     style={{ background: filled ? on : off }}
                   />
                 );

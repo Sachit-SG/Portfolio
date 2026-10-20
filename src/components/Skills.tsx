@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
-import LiquidEther from "./LiquidEther";
 import Reveal from "./Reveal";
 import CardIcon from "./CardIcon";
+import Antigravity from "./Antigravity";
 import {
   Database,
   Workflow,
@@ -16,52 +16,19 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Real fluid sim (LiquidEther), not a time-only shader — the site's red/
-// paper family, retuned for "water" (viscous, lower mouse force/idle drift)
-// instead of the library's default energetic look. Mounted only while the
-// section is actually on screen (IntersectionObserver) — LiquidEther has its
-// own internal visibility pause too, this is belt-and-suspenders for a
-// section that sits well below the fold, same lesson as the earlier
-// GridDistortion stutter.
-function WaterBackground({ reduced }: { reduced: boolean }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (reduced) return;
-    const el = wrapRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), {
-      threshold: 0,
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [reduced]);
-
-  return (
-    <div
-      ref={wrapRef}
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-70"
-    >
-      {!reduced && visible && <LiquidEther className="h-full w-full" />}
-    </div>
-  );
-}
-
 const skills = [
   // AI automation leads the list because it is the first-priority role target,
   // and the section is read top-down. Full-stack follows.
   {
-    title: "AI Automation",
+    title: "Automation",
     icon: Workflow,
     // Tags trimmed to what Sachit confirmed he can defend in an interview.
     // "LLM APIs", "Prompt design" and "AI-first delivery" were removed — he
     // has not shipped them, and an unbacked tag on the lead card is the fastest
     // way to lose the room. The two kept alongside it point at work already on
-    // this site (scheduled jobs, the 341-employee internal HR system).
+    // this site (scheduled jobs and internal tools), not demo usage figures.
     detail:
-      "Taking the manual, repeated work inside a product and making software do it instead — scheduled jobs, internal tooling and process automation, wired into systems that are already live.",
+      "Approval flows and scheduled jobs for repeated tasks in internal tools.",
     tags: ["Workflow automation", "Scheduled jobs", "Internal tooling"],
   },
   {
@@ -77,32 +44,31 @@ const skills = [
     title: "Frontend",
     icon: LayoutDashboard,
     detail:
-      "Next.js and React interfaces on top of my own APIs — typed, responsive, and built to stay maintainable.",
-    tags: ["Next.js", "React", "TypeScript", "Tailwind"],
+      "Responsive pages and interfaces, including layouts, interactions and scroll animations.",
+    tags: ["HTML", "CSS", "JavaScript", "GSAP"],
   },
   {
     title: "Platform & data",
     icon: Server,
     detail:
-      "Hosting, storage and scheduled work — the operational side that keeps a system running after launch.",
+      "Deployments, file storage and scheduled jobs using Vercel, Supabase and AWS S3.",
     tags: ["Vercel", "Supabase", "AWS S3", "Cron jobs"],
   },
   {
     title: "Design",
     icon: PenTool,
     detail:
-      "Two years of design before development — interface systems, layout and motion, without waiting on a designer.",
+      "Two years of design experience before development, working on interfaces, layout and motion.",
     tags: ["Figma", "UI systems", "Motion / GSAP"],
   },
 ];
 
-const SVG_NS = "http://www.w3.org/2000/svg";
 const TRAIN_LEN = 260; // px of track the train body occupies (desktop)
 // Desktop's arc-length is ~6400px; mobile's is only ~600px (the path skips
 // through every card body, contributing zero arc-length there). Sharing
 // TRAIN_LEN would make the mobile train ~40% of its own entire track.
 const TRAIN_LEN_MOBILE = 46;
-const DWELL_WEIGHT = 0.06; // scroll budget spent parked at each platform (desktop only)
+const DWELL_WEIGHT = 0.02; // Brief arrival beat; most scroll moves the light.
 
 // How much start/stop shaping to apply between stations.
 // 0 = perfectly linear (no speed spike at all), 1 = full sine in/out.
@@ -130,7 +96,7 @@ type Phase =
 // through it. "hold" = a skipped card body: real scroll passes through it
 // (its full height), but the drawn arc doesn't move at all while it does.
 type MobileSegment =
-  | { type: "draw"; pageStart: number; pageEnd: number; arcStart: number }
+  | { type: "draw"; pageStart: number; pageEnd: number; arcStart: number; arcLength?: number }
   | { type: "hold"; pageStart: number; pageEnd: number; arcAt: number };
 
 /**
@@ -156,7 +122,7 @@ function headFromPageY(
       if (s.type === "hold") return { headN: s.arcAt / totalArc, holding: true };
       const span = s.pageEnd - s.pageStart;
       const t = span > 0 ? clamp01((pageY - s.pageStart) / span) : 1;
-      return { headN: (s.arcStart + t * span) / totalArc, holding: false };
+      return { headN: (s.arcStart + t * (s.arcLength ?? span)) / totalArc, holding: false };
     }
   }
   return { headN: 1, holding: false };
@@ -228,9 +194,18 @@ function buildSchedule(stations: number[]): {
 
 export default function Skills() {
   const scope = useRef<HTMLElement>(null);
-  const reduced =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const [backgroundActive, setBackgroundActive] = useState(false);
+
+  useEffect(() => {
+    const section = scope.current;
+    if (!section) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setBackgroundActive(entry.isIntersecting),
+      { rootMargin: "80px 0px" }
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -243,8 +218,7 @@ export default function Skills() {
     const rails = Array.from(wrap.querySelectorAll<SVGPathElement>("[data-track-rail]"));
     const trails = Array.from(wrap.querySelectorAll<SVGPathElement>("[data-track-trail]"));
     const trains = Array.from(wrap.querySelectorAll<SVGPathElement>("[data-track-train]"));
-    const maskRect = wrap.querySelector<SVGRectElement>("[data-mask-bg]");
-    const maskCards = wrap.querySelector<SVGGElement>("[data-mask-cards]");
+    const guides = Array.from(wrap.querySelectorAll<SVGPathElement>("[data-track-guide]"));
     const startAnchor = wrap.querySelector<HTMLElement>("[data-track-start]");
 
     // Mobile track — separate elements, separate data-attributes. Reusing the
@@ -254,6 +228,7 @@ export default function Skills() {
     const railM = wrap.querySelector<SVGPathElement>("[data-track-rail-m]");
     const trailM = wrap.querySelector<SVGPathElement>("[data-track-trail-m]");
     const trainMs = Array.from(wrap.querySelectorAll<SVGPathElement>("[data-track-train-m]"));
+    const guideM = wrap.querySelector<SVGPathElement>("[data-track-guide-m]");
     const svgM = wrap.querySelector<SVGSVGElement>("[data-skill-svg-m]");
 
     let total = 0;
@@ -308,11 +283,9 @@ export default function Skills() {
      * Builds the DESKTOP track from the ACTUAL in/out node dots.
      *
      * Geometry, per Sachit's spec:
-     *  - Each card has TWO dots, on OPPOSITE side edges at the card's vertical
-     *    CENTRE (not one dot near the top). The track enters one side and
-     *    leaves the other, so the card genuinely sits ON the line.
-     *  - The crossing segment is a straight horizontal run through the card —
-     *    the platform.
+     *  - Each card has an entry and exit dot at the middle of opposite side
+     *    edges. The light traces only the upper half of the perimeter, so it
+     *    never loops around the bottom edge and back up the card.
      *  - Between cards the track bows hard into the empty gutter (control
      *    points pushed laterally, not just vertically) instead of the flattest
      *    possible S the previous version drew.
@@ -337,12 +310,23 @@ export default function Skills() {
         return {
           inP: centre(card.querySelector('[data-skill-node="in"]'), tx, ty),
           outP: centre(card.querySelector('[data-skill-node="out"]'), tx, ty),
+          top: card.getBoundingClientRect().top - wr.top - ty,
+          bottom: card.getBoundingClientRect().bottom - wr.top - ty,
         };
       });
       if (legs.some((l) => !l.inP || !l.outP)) return;
 
       const f = (n: number) => n.toFixed(1);
       const clampX = (x: number) => Math.max(6, Math.min(wr.width - 6, x));
+      // One measured route owns gutter travel, half-card tracing and reversal.
+      const cardEdge = (leg: typeof legs[number]) => {
+        const a = leg.inP!;
+        const b = leg.outP!;
+        const direction = Math.sign(b.x - a.x);
+        const r = 8;
+        const upper = ` L ${f(a.x)} ${f(leg.top + r)} Q ${f(a.x)} ${f(leg.top)} ${f(a.x + direction * r)} ${f(leg.top)} L ${f(b.x - direction * r)} ${f(leg.top)} Q ${f(b.x)} ${f(leg.top)} ${f(b.x)} ${f(leg.top + r)} L ${f(b.x)} ${f(b.y)}`;
+        return upper;
+      };
 
       // START: anchored under the "What I work with" pill.
       //
@@ -374,7 +358,8 @@ export default function Skills() {
       } else {
         d = `M ${f(first.x)} ${f(first.y)}`;
       }
-      d += ` L ${f(legs[0].outP!.x)} ${f(legs[0].outP!.y)}`;
+      let guideD = d;
+      d += cardEdge(legs[0]);
 
       for (let i = 1; i < legs.length; i++) {
         const a = legs[i - 1].outP!;
@@ -388,9 +373,15 @@ export default function Skills() {
         // and the swing it produces is a broad rail curve rather than a
         // shallow S. dir points the bow into whichever gutter is empty.
         const dir = b.x > wr.width / 2 ? 1 : -1;
-        const reach = Math.min(230, Math.max(110, Math.abs(b.y - a.y) * 0.46));
-        d += ` C ${f(clampX(a.x + dir * reach))} ${f(a.y)}, ${f(clampX(b.x + dir * reach))} ${f(b.y)}, ${f(b.x)} ${f(b.y)}`;
-        d += ` L ${f(legs[i].outP!.x)} ${f(legs[i].outP!.y)}`;
+        const outerX = dir > 0 ? Math.max(a.x, b.x) : Math.min(a.x, b.x);
+        const outerSpace = dir > 0 ? wr.width - outerX : outerX;
+        const laneX = clampX(outerX + dir * Math.min(120, outerSpace * 0.55));
+        // A shared exterior control lane keeps the entire curve outside both
+        // card faces; separate control offsets could overshoot behind a card.
+        const connector = ` C ${f(laneX)} ${f(a.y)}, ${f(laneX)} ${f(b.y)}, ${f(b.x)} ${f(b.y)}`;
+        d += connector;
+        guideD += ` M ${f(a.x)} ${f(a.y)}${connector}`;
+        d += cardEdge(legs[i]);
       }
 
       // END: leaves the last platform sideways, turns down, and runs off the
@@ -406,51 +397,16 @@ export default function Skills() {
       const dOut = last.x > wr.width / 2 ? 1 : -1;
       const exitX = clampX(last.x + dOut * 150);
       const endY = wr.height + Math.max(0, gapToSectionEnd);
-      d += ` C ${f(clampX(last.x + dOut * 150))} ${f(last.y)}, ${f(exitX)} ${f(last.y + (endY - last.y) * 0.45)}, ${f(exitX)} ${f(endY)}`;
+      const exit = ` C ${f(exitX)} ${f(last.y)}, ${f(exitX)} ${f(last.y + (endY - last.y) * 0.45)}, ${f(exitX)} ${f(endY)}`;
+      d += exit;
+      guideD += ` M ${f(last.x)} ${f(last.y)}${exit}`;
 
       svgs.forEach((s) => s.setAttribute("viewBox", `0 0 ${wr.width} ${wr.height}`));
       [...rails, ...trails, ...trains].forEach((p) => p.setAttribute("d", d));
+      guides.forEach((p) => p.setAttribute("d", guideD));
 
       total = rails[0]?.getTotalLength() ?? 0;
       if (!total) return;
-
-      // Mask: punch the card rectangles out of the ABOVE-cards layer, so the
-      // gutter arcs paint over everything while the crossing segment is only
-      // shown by the dimmer below-cards layer. That is what stops the track
-      // from simply vanishing behind a card the way it used to.
-      // Bounds extended to endY (not just wr.height): the mask is
-      // userSpaceOnUse with an EXPLICIT rect, which clips regardless of the
-      // SVG's own overflow-visible. Once the exit curve was extended past the
-      // wrap into the section's padding, a mask still sized to wr.height would
-      // silently cut that new segment straight back off on the front layer.
-      const maskEl = wrap.querySelector<SVGMaskElement>("[data-mask]");
-      if (maskEl) {
-        // Explicit userSpaceOnUse bounds — the -10%/120% defaults are relative
-        // to the viewport and would clip the lead-in/lead-out stubs.
-        maskEl.setAttribute("x", "0");
-        maskEl.setAttribute("y", "0");
-        maskEl.setAttribute("width", String(wr.width));
-        maskEl.setAttribute("height", String(endY));
-      }
-      if (maskRect) {
-        maskRect.setAttribute("width", String(wr.width));
-        maskRect.setAttribute("height", String(endY));
-      }
-      if (maskCards) {
-        maskCards.replaceChildren();
-        cards.forEach((card) => {
-          const { tx, ty } = restOf(card);
-          const r = card.getBoundingClientRect();
-          const rect = document.createElementNS(SVG_NS, "rect");
-          rect.setAttribute("x", f(r.left - wr.left - tx));
-          rect.setAttribute("y", f(r.top - wr.top - ty));
-          rect.setAttribute("width", f(r.width));
-          rect.setAttribute("height", f(r.height));
-          rect.setAttribute("rx", "28");
-          rect.setAttribute("fill", "black");
-          maskCards.appendChild(rect);
-        });
-      }
 
       trails.forEach((p) => {
         p.style.strokeDasharray = String(total);
@@ -461,9 +417,8 @@ export default function Skills() {
         p.style.strokeDashoffset = reduce ? String(TRAIN_LEN - total) : String(TRAIN_LEN);
       });
 
-      // Station = the midpoint of each card's crossing run. Found by sampling
-      // the built path rather than accumulating estimates, so a bezier's real
-      // arc length is used and the train parks dead-centre on the platform.
+      // Station = the entry dot of each card. Sample the measured path so the
+      // scroll schedule reaches each card at its real arc length.
       const SAMPLES = 700;
       const pts: { l: number; x: number; y: number }[] = [];
       for (let i = 0; i <= SAMPLES; i++) {
@@ -472,8 +427,8 @@ export default function Skills() {
         pts.push({ l, x: pt.x, y: pt.y });
       }
       stationAt = legs.map((leg) => {
-        const mx = (leg.inP!.x + leg.outP!.x) / 2;
-        const my = (leg.inP!.y + leg.outP!.y) / 2;
+        const mx = leg.inP!.x;
+        const my = leg.inP!.y;
         let best = 0;
         let bestD = Infinity;
         for (const p of pts) {
@@ -517,6 +472,8 @@ export default function Skills() {
           bottom: r.bottom - wr.top - ty,
           centerY: r.top + r.height / 2 - wr.top - ty,
           centerX: r.left + r.width / 2 - wr.left - tx,
+          left: r.left - wr.left - tx,
+          right: r.right - wr.left - tx,
         };
       };
       const boxes = cards.map(boxOf);
@@ -524,17 +481,36 @@ export default function Skills() {
       const x = boxes[0].centerX; // single column — every card shares one centre x
       const f = (n: number) => n.toFixed(1);
 
-      let d = `M ${f(x)} ${f(boxes[0].centerY)} L ${f(x)} ${f(boxes[0].bottom)}`;
-      for (let i = 1; i < boxes.length; i++) {
-        d += ` L ${f(x)} ${f(boxes[i].top)}`; // arrive at card[i]'s top edge — its station
-        d += ` M ${f(x)} ${f(boxes[i].bottom)}`; // skip the card body, resume at its bottom
-      }
       const sectionR = root.getBoundingClientRect();
       const endY = wr.height + Math.max(0, sectionR.bottom - wr.bottom);
+      let d = `M ${f(x)} ${f(boxes[0].top)}`;
+      let guideD = "";
+      const segs: MobileSegment[] = [];
+      let arc = 0;
+      boxes.forEach((box, i) => {
+        if (i) {
+          const gap = box.top - boxes[i - 1].bottom;
+          segs.push({ type: "draw", pageStart: boxes[i - 1].bottom, pageEnd: box.top, arcStart: arc });
+          arc += gap;
+          d += ` L ${f(x)} ${f(box.top)}`;
+          guideD += ` M ${f(x)} ${f(boxes[i - 1].bottom)} L ${f(x)} ${f(box.top)}`;
+        }
+        const { right: r, top: t, bottom: b } = box;
+        const edge = ` L ${f(r - 8)} ${f(t)} Q ${f(r)} ${f(t)} ${f(r)} ${f(t + 8)} L ${f(r)} ${f(b - 8)} Q ${f(r)} ${f(b)} ${f(r - 8)} ${f(b)} L ${f(x)} ${f(b)}`;
+        railM.setAttribute("d", `M ${f(x)} ${f(t)}` + edge);
+        const length = railM.getTotalLength();
+        segs.push({ type: "draw", pageStart: t, pageEnd: b, arcStart: arc, arcLength: length });
+        arc += length;
+        d += edge;
+      });
+      segs.push({ type: "draw", pageStart: boxes[boxes.length - 1].bottom, pageEnd: endY, arcStart: arc });
       d += ` L ${f(x)} ${f(endY)}`;
+      guideD += ` M ${f(x)} ${f(boxes[boxes.length - 1].bottom)} L ${f(x)} ${f(endY)}`;
+      segmentsM = segs;
 
       svgM.setAttribute("viewBox", `0 0 ${wr.width} ${wr.height}`);
       [railM, trailM, ...trainMs].forEach((p) => p.setAttribute("d", d));
+      guideM?.setAttribute("d", guideD);
 
       totalM = railM.getTotalLength();
       if (!totalM) return;
@@ -553,22 +529,6 @@ export default function Skills() {
       // (exit). This is what fixes the actual bug — see the buildMobileLine
       // and headFromPageY docs — by tracking how much REAL scroll each part
       // costs, not how much arc-length it drew.
-      const segs: MobileSegment[] = [];
-      let arc = 0;
-      segs.push({ type: "draw", pageStart: boxes[0].centerY, pageEnd: boxes[0].bottom, arcStart: arc });
-      arc += boxes[0].bottom - boxes[0].centerY;
-      for (let i = 1; i < boxes.length; i++) {
-        segs.push({ type: "draw", pageStart: boxes[i - 1].bottom, pageEnd: boxes[i].top, arcStart: arc });
-        arc += boxes[i].top - boxes[i - 1].bottom;
-        segs.push({ type: "hold", pageStart: boxes[i].top, pageEnd: boxes[i].bottom, arcAt: arc });
-      }
-      segs.push({
-        type: "draw",
-        pageStart: boxes[boxes.length - 1].bottom,
-        pageEnd: endY,
-        arcStart: arc,
-      });
-      segmentsM = segs;
 
       // The window ScrollTrigger will actually use for THIS config
       // (trigger: firstCard, start:"center center" .. endTrigger: root,
@@ -578,9 +538,9 @@ export default function Skills() {
       // headFromPageY convert that back to a real wrap-local Y.
       const vh = window.innerHeight;
       const firstR = cards[0].getBoundingClientRect();
-      const startScrollPx = firstR.top + firstR.height / 2 - vh / 2;
+      const startScrollPx = firstR.top - vh / 2;
       const endScrollPx = sectionR.bottom - vh * 0.25;
-      pageStartM = boxes[0].centerY;
+      pageStartM = boxes[0].top;
       pageSpanM = endScrollPx - startScrollPx;
     };
 
@@ -600,7 +560,6 @@ export default function Skills() {
 
     const cards = Array.from(root.querySelectorAll<HTMLElement>("[data-skill-card]"));
 
-    const MOBILE_REVEAL_Y = 44; // px cards[1..] rise from as their station arrives
     // In real scroll PIXELS now, not scroll-progress fractions — everything
     // mobile touches is real-pixel-based after the headFromPageY fix, so this
     // stays consistent and isn't at the mercy of how big the window happens
@@ -661,7 +620,9 @@ export default function Skills() {
           // read as slow. Ending a bit earlier packs the same path length into
           // less scroll, directly raising both average and peak speed.
           end: "bottom 25%",
-          scrub: 0.9,
+          // onUpdate reads scroll progress directly; a numeric scrub on a
+          // trigger without an animation cannot smooth these DOM writes.
+          scrub: true,
           onUpdate: (self) => {
             if (!total) return;
             const headN = schedule(self.progress); // 0..1 along the track
@@ -690,7 +651,7 @@ export default function Skills() {
           // the card pinned to the track while still reversing cleanly, and
           // the train supplies the motion here.
           gsap.from(card, {
-            opacity: 0,
+              opacity: .55,
             duration: 0.55,
             ease: "power3.out",
             scrollTrigger: {
@@ -723,7 +684,7 @@ export default function Skills() {
           },
         });
       }
-      gsap.set(restCards, { opacity: 0, y: MOBILE_REVEAL_Y });
+      gsap.set(restCards, { opacity: .55 });
 
       // Parked-at-a-station breathing pulse. The position fix means the train
       // now correctly FREEZES for the entire real height of whatever card
@@ -735,18 +696,6 @@ export default function Skills() {
       // "line". A single persistent tween, paused by default and toggled
       // on/off by hold-state below, rather than creating a new tween on every
       // scroll tick.
-      const solidTrainM = trainMs[1] ?? trainMs[0] ?? null;
-      const pulse = solidTrainM
-        ? gsap.to(solidTrainM, {
-            opacity: 0.5,
-            duration: 0.55,
-            ease: "sine.inOut",
-            yoyo: true,
-            repeat: -1,
-            paused: true,
-          })
-        : null;
-      let wasHolding = false;
 
       ScrollTrigger.create({
         // "Starts from the middle of the first card": departure is tied to
@@ -754,7 +703,7 @@ export default function Skills() {
         // section edge — matching where the path itself begins (card 1's own
         // vertical middle).
         trigger: firstCard ?? root,
-        start: "center center",
+        start: "top center",
         endTrigger: root,
         end: "bottom 25%", // same window trim as desktop, same reason
         scrub: 0.9,
@@ -766,17 +715,14 @@ export default function Skills() {
           // far you've physically scrolled, not an arc-length budget that had
           // no relationship to how tall each card really is.
           const pageY = pageStartM + self.progress * pageSpanM;
-          const { headN, holding } = headFromPageY(segmentsM, totalM, pageY);
+          root.dataset.ledProgress = self.progress.toFixed(3);
+          firstCard?.classList.toggle("line-reached", pageY >= (boxesM[0]?.top ?? 0));
+          const { headN } = headFromPageY(segmentsM, totalM, pageY);
           const head = headN * totalM;
           if (trailM) trailM.style.strokeDashoffset = String(totalM - head);
           trainMs.forEach((p) => {
             p.style.strokeDashoffset = String(TRAIN_LEN_MOBILE - head);
           });
-          if (pulse && holding !== wasHolding) {
-            wasHolding = holding;
-            if (holding) pulse.play();
-            else pulse.pause().progress(0);
-          }
           // Reveal is driven the SAME way — real pixels, anchored on each
           // card's own actual top edge (boxesM[i+1].top), not a fraction of
           // an arbitrary window. MOBILE_REVEAL_PX gives a comfortably visible
@@ -790,7 +736,8 @@ export default function Skills() {
             const revealStartY = revealEndY - MOBILE_REVEAL_PX;
             const raw = clamp01((pageY - revealStartY) / MOBILE_REVEAL_PX);
             const eased = easeInOut(raw);
-            gsap.set(card, { opacity: eased, y: (1 - eased) * MOBILE_REVEAL_Y });
+            gsap.set(card, { opacity: .55 + .45 * eased });
+            card.classList.toggle("line-reached", pageY >= box.top);
           });
         },
       });
@@ -803,10 +750,8 @@ export default function Skills() {
     };
   }, []);
 
-  // One <svg> is rendered twice: BELOW the cards (dim — the train seen through
-  // the translucent card, i.e. pulling through the station) and ABOVE the cards
-  // (crisp, masked so it only paints in the gutters). Same `d`, same dash
-  // maths on both, so the train reads as one continuous vehicle.
+  // The full route measures the moving light. Separate gutter-only subpaths
+  // paint the resting guide, so no mask can sever it before a midpoint dot.
   const track = (layer: "back" | "front") => (
     <svg
       data-skill-svg
@@ -816,95 +761,36 @@ export default function Skills() {
       }`}
       fill="none"
     >
-      {layer === "front" && (
-        <defs>
-          <mask data-mask id="skill-track-mask" maskUnits="userSpaceOnUse">
-            <rect data-mask-bg x="0" y="0" fill="white" />
-            <g data-mask-cards />
-          </mask>
-        </defs>
-      )}
-      <g mask={layer === "front" ? "url(#skill-track-mask)" : undefined}>
-        {/* Rails: already laid, the whole route visible before the train runs. */}
-        <path
-          data-track-rail
-          stroke="var(--ultra)"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={layer === "front" ? 0.09 : 0.11}
-        />
-        {/* Track already travelled. */}
-        <path
-          data-track-trail
-          stroke="var(--ultra)"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={layer === "front" ? 0.26 : 0.2}
-        />
-        {/* Glow under the train body. */}
-        <path
-          data-track-train
-          stroke="var(--signal)"
-          strokeWidth="12"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={layer === "front" ? 0.22 : 0.28}
-        />
-        {/* The train itself. */}
-        <path
-          data-track-train
-          stroke="var(--signal)"
-          strokeWidth="4.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={layer === "front" ? 1 : 0.8}
-        />
-      </g>
+      <path data-track-guide stroke="var(--ultra)" strokeWidth="3" strokeLinecap="round" opacity={layer === "front" ? 0.15 : 0} />
+      <path data-track-rail opacity={0} />
+      <path data-track-trail opacity={0} />
+      {/* Only the moving light crosses the card edge. */}
+      <path
+        data-track-train
+        stroke="var(--signal)"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={layer === "front" ? 1 : 0}
+      />
     </svg>
   );
 
-  // Mobile/tablet track: one layer, not two. The desktop version needs a
-  // dim-below/crisp-above split specifically because its line crosses THROUGH
-  // card bodies (so a card sitting over it needs to dim it, not hide it
-  // entirely). This line only ever runs in the gaps between cards, so there's
-  // nothing for a card to occlude and no mask is needed.
+  // Mobile/tablet uses the same gutter-only resting guide.
   const mobileTrack = (
     <svg
       data-skill-svg-m
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 z-0 block h-full w-full overflow-visible lg:hidden"
+      className="pointer-events-none absolute inset-0 z-20 block h-full w-full overflow-visible lg:hidden"
       fill="none"
     >
-      <path
-        data-track-rail-m
-        stroke="var(--ultra)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={0.13}
-      />
-      <path
-        data-track-trail-m
-        stroke="var(--ultra)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={0.32}
-      />
+      <path data-track-guide-m stroke="var(--ultra)" strokeWidth="3" strokeLinecap="round" opacity={0.15} />
+      <path data-track-rail-m opacity={0} />
+      <path data-track-trail-m opacity={0} />
       <path
         data-track-train-m
         stroke="var(--signal)"
-        strokeWidth="12"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={0.25}
-      />
-      <path
-        data-track-train-m
-        stroke="var(--signal)"
-        strokeWidth="4.5"
+        strokeWidth="5"
         strokeLinecap="round"
         strokeLinejoin="round"
         opacity={1}
@@ -916,14 +802,48 @@ export default function Skills() {
     <section
       id="skills"
       ref={scope}
-      className="relative overflow-hidden px-6 py-32 sm:px-10 lg:pl-[388px]"
+      className="relative overflow-hidden px-6 py-20 sm:px-10 lg:pl-[288px]"
     >
-      <WaterBackground reduced={reduced} />
+      {backgroundActive && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-0 opacity-60"
+        >
+          <Antigravity
+            count={460}
+            colors={["#D92626", "#E03131", "#AD2121"]}
+            colorMode="radial"
+            colorSpeed={0}
+            magnetRadius={6}
+            ringRadius={4.4}
+            particleSize={0.46}
+            particleVariance={0.12}
+            fieldStrength={10}
+            waveAmplitude={0.08}
+            waveCount={2}
+            waveSpeed={0.08}
+            rotationSpeed={0}
+            pulseSpeed={0.2}
+            depthFactor={0.08}
+            ambient={0.2}
+            lerpSpeed={0.08}
+            interactive
+            autoAnimate
+            clickBurst={false}
+            intro={false}
+            lightMode
+            opacity={0.72}
+            paperRange={["skills", "contact"]}
+            maxDevicePixelRatio={1.25}
+            className="absolute inset-0"
+          />
+        </div>
+      )}
 
       {/* The pill lives INSIDE the track wrap because it IS the track's origin:
           the line starts beneath "What I work with" and runs off the bottom
           edge into the next section, so it never begins or ends in mid-air. */}
-      <div data-skill-line-wrap className="relative">
+      <div data-skill-line-wrap className="relative z-10">
         {track("back")}
         {mobileTrack}
 
@@ -939,83 +859,67 @@ export default function Skills() {
               curve to swing past the dot and double back, which read as a
               kink in the line. */}
           <Reveal className="lg:-ml-16 xl:-ml-24">
-            <span
+            <h2
               data-track-start
-              className="inline-block w-fit rounded-full border border-border-paper px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-ultra"
+              className="inline-block w-fit font-display text-[clamp(2rem,4vw,4rem)] font-semibold leading-none tracking-[-.04em] text-text-paper"
             >
-              What I work with
-            </span>
+              What I build.
+            </h2>
           </Reveal>
 
-          {skills.map((s, i) => (
-            <article
-              key={s.title}
-              data-skill-card
-              data-card
-              className={`group relative w-full max-w-3xl rounded-card border border-border-paper bg-paper-card/60 p-10 backdrop-blur-[20px] sm:p-12 lg:max-w-[540px] xl:max-w-[660px] ${
-                i % 2 === 1 ? "lg:self-end" : "lg:self-start"
-              }`}
-            >
-              {/* Two dots, opposite edges, vertical centre: the train comes IN
-                  one side of the platform and leaves from the OTHER. */}
-              <span
-                data-skill-node="in"
-                aria-hidden="true"
-                className={`absolute top-1/2 hidden h-4 w-4 -translate-y-1/2 rounded-full bg-signal ring-4 ring-paper lg:block ${
-                  i % 2 === 1 ? "-right-2" : "-left-2"
+          {skills.map((s, i) => {
+            return (
+              <article
+                key={s.title}
+                data-skill-card
+                data-card
+                className={`group relative w-full max-w-3xl rounded-[8px] border border-transparent bg-paper-card/60 p-10 backdrop-blur-[20px] sm:p-12 lg:max-w-[540px] xl:max-w-[660px] ${
+                  i % 2 === 1 ? "lg:self-end" : "lg:self-start"
                 }`}
-              />
-              <span
-                data-skill-node="out"
-                aria-hidden="true"
-                className={`absolute top-1/2 hidden h-4 w-4 -translate-y-1/2 rounded-full bg-signal ring-4 ring-paper lg:block ${
-                  i % 2 === 1 ? "-left-2" : "-right-2"
-                }`}
-              />
+              >
+                {/* Opposite mid-edge dots bookend the upper half-card trace. */}
+                <span
+                  data-skill-node="in"
+                  aria-hidden="true"
+                  className={`absolute top-1/2 hidden h-4 w-4 -translate-y-1/2 rounded-full bg-signal ring-4 ring-paper lg:block ${
+                    i % 2 === 1 ? "-right-2" : "-left-2"
+                  }`}
+                />
+                <span
+                  data-skill-node="out"
+                  aria-hidden="true"
+                  className={`absolute top-1/2 hidden h-4 w-4 -translate-y-1/2 rounded-full bg-signal ring-4 ring-paper lg:block ${
+                    i % 2 === 1 ? "-left-2" : "-right-2"
+                  }`}
+                />
 
-              <div className="flex justify-end">
-                <CardIcon icon={s.icon} className="h-11 w-11 shrink-0" />
-              </div>
+                <div className="flex justify-end">
+                  <CardIcon icon={s.icon} className="h-11 w-11 shrink-0" />
+                </div>
 
-              {/* Fluid on mobile (vw, not a fixed rem step) because the card's
-                  own width is fluid there too — text-6xl (60px) was fixed
-                  regardless of viewport, and a single word like "Automation"
-                  is wider than that at any phone under ~600px, so it ran off
-                  the card and off the screen instead of wrapping smaller.
-                  break-words is a safety net, not the fix: the overflow here
-                  was one whole word too wide, which can't be broken further. */}
-              <h3 className="font-display mt-4 break-words text-[11vw] font-bold leading-none tracking-[-0.03em] text-ultra-bright sm:text-6xl lg:text-7xl">
-                {s.title}
-              </h3>
+                {/* Fluid on mobile because the card is fluid too. */}
+                <h3 className="font-display mt-4 break-words text-[11vw] font-bold leading-none tracking-[-0.03em] text-ultra-bright sm:text-6xl lg:text-7xl">
+                  {s.title}
+                </h3>
 
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-paper">
-                {s.detail}
-              </p>
+                <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-paper">
+                  {s.detail}
+                </p>
 
-              <div className="mt-8 flex flex-wrap gap-2.5">
-                {s.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-full border border-border-paper px-3.5 py-2 font-mono text-xs text-muted-paper"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
+                <div className="mt-8 flex flex-wrap gap-2.5">
+                  {s.tags.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full border border-border-paper px-3.5 py-2 font-ui text-[13px] font-medium text-muted-paper"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
 
-              {/* Reflection — the "sitting on water" cue. A flipped, blurred,
-                  fading echo of the card's own base, not its content; that's
-                  enough to sell the surface without duplicating real text. */}
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-6 top-full h-14 -scale-y-100 rounded-b-card border border-border-paper bg-paper-card/60 opacity-25 blur-[6px]"
-                style={{
-                  maskImage: "linear-gradient(to bottom, black, transparent)",
-                  WebkitMaskImage: "linear-gradient(to bottom, black, transparent)",
-                }}
-              />
-            </article>
-          ))}
+              </article>
+            );
+          })}
 
           {/* Run-off room. The wrap's height is what the exit curve turns
               through on its way off the bottom edge; without this the track

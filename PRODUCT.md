@@ -16,7 +16,7 @@ Sachit's personal portfolio. It exists to land him a job by proving — not clai
 
 ## Positioning
 
-Not a generalist "full-stack developer" portfolio. The claim is narrower and backed by evidence: sole developer on 5 live production systems (Node/Postgres/Next.js), 2 years of design experience before writing code (so the design and the engineering are both his, not outsourced), and — as of Aug 2026 — a widened claim into AI automation (workflow automation specifically; the broader "AI-first" language was deliberately cut because he couldn't defend it in an interview yet).
+Full-stack development with a design background: company websites and internal tools using Node.js, PostgreSQL and Next.js. Sachit reports one year as sole developer at Lama Group and two years of design experience before development. AI workflow automation is a role interest and a stated capability, not yet a demonstrated shipped AI product. The current selection includes six projects with mixed development/public-preview status; do not call them six production systems.
 
 ## Operating Context
 
@@ -34,13 +34,14 @@ Single long-scroll page, viewed cold by someone who has never met Sachit. Deskto
 
 ## Brand Commitments
 
-Name: Sachit Ghimire. Voice: direct, evidence-first, no marketing fluff ("I build systems that run themselves" over generic "passionate developer" language). Motion-first is a standing identity decision, not a default — every new section should carry deliberate motion, not just the ones someone remembered to animate.
+Name: Sachit Ghimire. Voice: direct, evidence-first, no marketing fluff. Name the actual websites, interfaces, APIs and tools rather than promising autonomous systems. Motion-first is a standing identity decision, not a default — every new section should carry deliberate motion, not just the ones someone remembered to animate.
 
 ## Evidence on Hand
 
-- 5 real, live case studies with working URLs: Lama Fuel (la-ma-fuel.vercel.app), Lama Convenience (lamaconvenience.org), Unitech Hydropower (unitechhydropower.com — 20.8MW, richest real data), Retail HR (hr-management-system-azure.vercel.app — 341 employees), Lama Group (lama.group).
-- Real stats used on-site: 5 live systems, 1yr sole dev at Lama Group, 2yrs design before dev.
-- **Gap, not yet filled — do not fabricate:** LinkedIn and GitHub links in `SideRail.tsx` are still placeholders (`linkedin.com/`, `github.com/`), explicitly marked `TODO: swap for Sachit's real profile URLs`. Treat as absent until he supplies the real ones.
+- Current project selection: Lama Fuel, Thekuwa, Unitech Hydropower, Retail HR, QT Contracts and Lama Group. `src/lib/projects.ts` supplies the visible scope, links and status. Thekuwa and QT are in development; public Retail HR screenshots contain demo data.
+- Count shown on-site: six selected projects, derived from the project array, not a claim about production deployments. One year sole development at Lama Group and two years design are user-supplied background facts.
+- Screenshot values are not adoption or performance metrics. Client asset capacity and company age are not Sachit's personal results. These figures were removed from project metrics on 2026-10-20.
+- Current source includes specific LinkedIn/GitHub profile URLs. Do not replace them with generic platform homepages or invent new profiles.
 - AI-automation evidence is currently claim-only for the specific stack tags shown (workflow automation is the one Sachit confirmed he can defend; the site does not yet have a shipped example an interviewer could click into).
 
 ## Product Principles

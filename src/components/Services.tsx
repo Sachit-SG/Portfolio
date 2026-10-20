@@ -35,29 +35,29 @@ const services = [
   {
     title: "Full-stack web applications",
     detail:
-      "Dashboards, internal tools, and ordering or booking systems, front to back, by one person who owns the whole flow.",
-    proof: "Retail HR, Lama Fuel",
+      "Staff dashboards and internal tools, from the interface to the API and database.",
+    proof: "Retail HR, QT Contracts (in development)",
     stack: ["Next.js", "React", "Node.js", "PostgreSQL"],
   },
   {
     title: "Backend & APIs",
     detail:
-      "Postgres schema design, authentication and SSO, and secure internal APIs that replace manual, error-prone processes.",
-    proof: "JWT SSO across two codebases, secured HR endpoints",
+      "PostgreSQL schemas, Node.js and Express services, authentication and JWT-based single sign-on.",
+    proof: "JWT single sign-on across two codebases",
     stack: ["Node.js", "Express", "Prisma", "JWT", "Supabase"],
   },
   {
-    title: "Production websites",
+    title: "Company websites",
     detail:
-      "Fast, data-driven corporate and marketing sites that stay maintainable. Real content structures, not a static brochure.",
-    proof: "Unitech Hydropower, Lama Convenience, Lama Group",
+      "Responsive pages for company information, projects, services and enquiries.",
+    proof: "Unitech Hydropower, Lama Group",
     stack: ["Next.js", "TypeScript", "Tailwind", "Vercel"],
   },
   {
-    title: "Design-to-shipped UI",
+    title: "Interface design",
     detail:
-      "From a Figma file or a rough idea to a working interface, without waiting on a separate designer. Two years of design work before dev.",
-    proof: "Design background applied to every build",
+      "Layouts and interaction design in Figma, followed through into the working interface.",
+    proof: "Two years of design experience before development",
     stack: ["Figma", "Tailwind", "Motion / GSAP"],
   },
 ];
@@ -132,18 +132,17 @@ export default function Services() {
     <section
       id="services"
       ref={scope}
-      className="relative overflow-hidden px-6 py-32 text-text-paper sm:px-10 lg:pl-[388px]"
+      className="relative overflow-hidden px-6 py-32 text-text-paper sm:px-10 lg:pl-[288px]"
     >
       <SectionTexture variant="dots" tone="paper" />
       <div className="mb-16 max-w-2xl">
         <LineReveal
-          lines={["What you get,", "if we work together."]}
+          lines={["What I work on"]}
           className="font-display mt-4 text-4xl font-medium leading-[1.0] tracking-[-0.005em] sm:text-6xl"
         />
         <Reveal>
           <p className="mt-6 text-muted-paper">
-            Not a menu of packages. The four things my shipped work actually
-            proves I can do.
+            The design and development work I take on.
           </p>
         </Reveal>
       </div>
@@ -233,7 +232,7 @@ export default function Services() {
         <Reveal>
           <a
             href="#contact"
-            className="rounded-full bg-signal px-7 py-3.5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="rounded-[8px] bg-signal px-7 py-3.5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
           >
             Get in touch
           </a>

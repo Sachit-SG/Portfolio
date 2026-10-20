@@ -4,7 +4,7 @@ import AmbientBackdrop from "@/components/AmbientBackdrop";
 import SmoothScroll from "@/components/SmoothScroll";
 import Hero from "@/components/Hero";
 import Skills from "@/components/Skills";
-import Work from "@/components/Work";
+import WorkShowcase from "@/components/WorkShowcase";
 import Statement from "@/components/Statement";
 import Services from "@/components/Services";
 import Contact from "@/components/Contact";
@@ -22,12 +22,12 @@ export default function Home() {
       <main className="flex-1">
         <Hero />
         {/* Offset post-hero content so it clears the fixed rail on desktop. */}
-        {/* Must clear the rail: left-6 (24px) + w-[332px] + a 32px gutter.
+        {/* Must clear the rail: left-6 (24px) + w-[236px] + a 28px gutter.
             data-light-zone: the ambient light leans toward the cursor while the
             pointer is over the paper sections, and returns to pure drift once
             it leaves. */}
         <div data-light-zone>
-          <Work />
+          <WorkShowcase />
           <Skills />
           <Statement />
           <Services />

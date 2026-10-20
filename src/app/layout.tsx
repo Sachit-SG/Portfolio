@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
+import { Geist_Mono, IBM_Plex_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -25,10 +25,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Sachit Ghimire — AI Automation & Full Stack Developer",
+  title: "Sachit Ghimire — Full Stack Developer",
   description:
-    "I build systems that run themselves — AI automation wired into live products, plus the backend and interfaces underneath. Node, PostgreSQL, Next.js.",
+    "Kathmandu-based developer with a design background. Selected websites and internal tools built with Next.js, Node.js and PostgreSQL.",
 };
 
 export default function RootLayout({
@@ -39,7 +46,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${clashDisplay.variable} ${switzer.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${clashDisplay.variable} ${switzer.variable} ${geistMono.variable} ${plexSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-text-paper">
         {children}

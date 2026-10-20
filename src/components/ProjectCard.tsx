@@ -66,7 +66,7 @@ export default function ProjectCard({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`/work/${project.slug}.jpg`}
-          alt={`${project.name} — live site`}
+          alt={`${project.name} screenshot`}
           className={`absolute inset-0 h-full w-full bg-ink transition-transform duration-[600ms] ease-out group-hover:scale-[1.05] ${
             index === 0 ? "object-contain object-center" : "object-cover object-top"
           }`}

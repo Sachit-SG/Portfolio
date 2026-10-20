@@ -26,15 +26,32 @@ export default function SmoothScroll() {
     const hasHash = window.location.hash.length > 1;
     if (!hasHash) window.scrollTo(0, 0);
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let cancelled = false;
+    const mm = gsap.matchMedia();
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+    let disposed = false;
 
     const lenis = new Lenis({
       duration: 1.05,
       smoothWheel: true,
+      anchors: false,
     });
     // Lenis keeps its own virtual scroll position, so window.scrollTo alone
     // leaves the two out of sync — it has to be told as well.
     if (!hasHash) lenis.scrollTo(0, { immediate: true });
+    const onAnchor = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = (event.target as Element).closest<HTMLAnchorElement>('a[href*="#"]');
+      if (!link || link.target === "_blank") return;
+      const url = new URL(link.href);
+      if (url.origin !== location.origin || url.pathname !== location.pathname || !url.hash) return;
+      if (!document.getElementById(url.hash.slice(1))) return;
+      event.preventDefault();
+      history.pushState(null, "", url.hash);
+      // A pinned Hero's live rect is not the document's origin.
+      lenis.scrollTo(url.hash === "#top" ? 0 : url.hash);
+    };
+    window.addEventListener("click", onAnchor);
 
     // Keep ScrollTrigger in step with Lenis' virtual scroll position.
     lenis.on("scroll", ScrollTrigger.update);
@@ -56,12 +73,23 @@ export default function SmoothScroll() {
     // cause — see Work.tsx's pin start offset — but this Lenis/real-height
     // drift is real on its own and worth keeping fixed regardless.)
     const resettle = () => {
+      if (cancelled || disposed) return;
       ScrollTrigger.refresh();
       lenis.resize();
     };
+    const resize = () => lenis.resize();
+    ScrollTrigger.addEventListener("refresh", resize);
+    let hashAligned = false;
+    const alignHash = () => {
+      lenis.resize();
+      if (window.location.hash && !hashAligned) {
+        hashAligned = true;
+        lenis.scrollTo(window.location.hash === "#top" ? 0 : window.location.hash, { immediate: true });
+      }
+    };
+    window.addEventListener("portfolio:layout-ready", alignHash);
     document.fonts.ready.then(resettle);
     window.addEventListener("load", resettle);
-    const settleTimers = [200, 600, 1500].map((ms) => window.setTimeout(resettle, ms));
 
     const raf = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(raf);
@@ -69,12 +97,17 @@ export default function SmoothScroll() {
     gsap.ticker.lagSmoothing(0);
 
     return () => {
+      disposed = true;
       window.removeEventListener("load", resettle);
-      settleTimers.forEach((id) => window.clearTimeout(id));
+      window.removeEventListener("click", onAnchor);
+      ScrollTrigger.removeEventListener("refresh", resize);
+      window.removeEventListener("portfolio:layout-ready", alignHash);
       gsap.ticker.remove(raf);
       gsap.ticker.lagSmoothing(500, 33);
       lenis.destroy();
     };
+    });
+    return () => { cancelled = true; mm.revert(); };
   }, []);
 
   return null;

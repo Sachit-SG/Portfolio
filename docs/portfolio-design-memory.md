@@ -168,3 +168,35 @@ Run a compact reference pass:
 Research output should answer: what makes the reference work, why it works, how it maps into
 Sachit's identity, what should be rejected, and what concrete section or interaction it may
 improve.
+
+# Typography and Work surfaces — 2026-10-20
+
+- Fonts In Use reference: Ana Blagojevic's gallery-like portfolio uses Neue Montreal and BC Steiner: https://fontsinuse.com/uses/45863/ana-blagojevic-website . Relevant for a quiet interface around dominant project imagery.
+- Matteo Sacchi's portfolio pairs Founders Grotesk with IBM Plex Mono: https://fontsinuse.com/uses/23632/matteo-sacchi-portfolio . This is evidence for the pairing, not a claim that it uses Plex Sans.
+- IBM Plex Sans typeface reference: https://fontsinuse.com/typefaces/48059/ibm-plex-sans . Selected for the reading/interface layer and skill tags using Next's existing font loader. Neue Montreal and Founders remain reference candidates, not downloaded or licensed project assets.
+- Preserve Clash Display headings and the protected Hero. Use Plex Sans on Work routes, skill chips and the Approach paragraph rather than replacing the whole identity.
+- Work gallery moves to paper; detail pages use paper for explanatory content between ink image and next-project stages. Browser appearance remains to be reviewed; compilation does not certify the composition.
+
+## Imageworks reference adaptation — 2026-10-20
+
+- On `/work`, keep the opening scene ink/dark; the actual project index returns to paper.
+- Use a continuously moving perspective field of authentic project screenshots in the hero,
+  paused offscreen and in hidden tabs. Follow it with one pinned image transition: the small
+  image rises and grows while the text leaves, with both motions overlapping.
+- The work hero uses React Bits Galaxy with sparse warm-white/red stars, low glow and slow
+  drift. The red particle canvas starts below the hero, brighter over the paper project index
+  and restrained over ink. Use the existing CSS/GSAP stack for this sequence.
+- The live Imageworks page supplies pacing and image-depth mechanics only; preserve this
+  portfolio's red/paper/ink system, Clash Display identity, and factual project descriptions.
+
+## Copy evidence and voice — 2026-10-20
+
+- Ten primary-source portfolio studies and proposed drafts live in
+  `docs/portfolio-copy-research-2026-10-20.md`. Use their writing principles, not their claims.
+- Project copy should name the artifact, individual contribution, actual status and a real
+  technical decision. Present behavior in present tense; describe completed work in past tense.
+- Separate demo values and client-business context from Sachit's results. The old evidence
+  inventory needs reconciling with current project status before reusing its totals.
+- Do not claim shipped AI automation until a concrete shipped example is documented.
+  Keep role interest distinct from delivered capability. Do not redesign the protected Hero
+  merely to apply these copy recommendations.
