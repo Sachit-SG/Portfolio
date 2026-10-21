@@ -33,7 +33,8 @@ export default async function ProjectPage({ params }: Props) {
         <p>{project.blurb}</p>
       </div>
       <div className={styles.detailIndex}>
-        <span>{project.type}{project.status && <> · {project.status}</>}</span>
+        <span className={styles.caseNumber}>CASE {String(index + 1).padStart(2, "0")} / {String(projects.length).padStart(2, "0")}</span>
+        <span>{project.type}</span>
         <span>{project.role} · {project.year}</span>
         {project.href && <a href={project.href} target="_blank" rel="noopener noreferrer">{slug === "hr-management-system" ? "Open sign-in page" : "Visit live site"} <ArrowUpRight size={18} /></a>}
       </div>
@@ -45,13 +46,22 @@ export default async function ProjectPage({ params }: Props) {
     </figure>
     <section className={styles.story} data-work-reveal aria-label="Project context and contribution">
       <dl className={styles.facts}>
-        <div><dt>Role</dt><dd>{project.role}</dd></div>
-        <div><dt>Stack</dt><dd>{project.stack.join(" · ")}</dd></div>
+        <div><dt>My role</dt><dd>{project.role}</dd></div>
+        <div><dt>Built with</dt><dd>{project.stack.join(" · ")}</dd></div>
+        {project.status && <div><dt>Status</dt><dd>{project.status}</dd></div>}
         {project.metrics.map((metric) => <div key={metric.label}><dt>{metric.label}</dt><dd>{metric.value}</dd></div>)}
       </dl>
       <div className={styles.narrative}>
-        <div><h2>Why it exists</h2><p>{project.problem}</p></div>
-        <div><h2>What I built</h2><p>{project.contribution}</p></div>
+        <div>
+          <span className={styles.narrativeLabel}>The brief</span>
+          <h2>What the project needed</h2>
+          <p>{project.problem}</p>
+        </div>
+        <div>
+          <span className={styles.narrativeLabel}>My part</span>
+          <h2>What I built</h2>
+          <p>{project.contribution}</p>
+        </div>
       </div>
     </section>
     <section className={styles.next} data-work-reveal aria-label="Next project">

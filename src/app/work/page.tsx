@@ -37,7 +37,7 @@ export default function WorkPage() {
           layers={3}
           repulsionStrength={0.3}
           clickWarp={false}
-          intro={false}
+          intro
           opacity={0.62}
           dpr={1.25}
         />
@@ -74,8 +74,7 @@ export default function WorkPage() {
       <section className={styles.imageScene} data-work-scene aria-labelledby="scene-title">
         <div className={styles.sceneStage}>
           <div className={styles.sceneCopy} data-scene-copy>
-            <h2 id="scene-title">Designing the interface.<br />Building what runs it.</h2>
-            <p>Layouts, interactions, APIs and databases.</p>
+            <h2 id="scene-title">Design. Build.</h2>
           </div>
           <div className={styles.sceneImage} data-scene-image>
             <Image src={projects[0].media} alt="Lama Fuel website" width={projects[0].mediaWidth ?? 1200} height={projects[0].mediaHeight ?? 750} sizes="100vw" />
@@ -89,6 +88,10 @@ export default function WorkPage() {
           <h2 id="projects-title">Projects</h2>
           <span>{String(projects.length).padStart(2, "0")} projects</span>
         </div>
+        <aside className={styles.workContext} aria-label="Employment context">
+          <span>Experience</span>
+          <p><strong>Software Engineer</strong> · Beez Consulting, Nepal · part of Lama Group, Texas</p>
+        </aside>
         <div className={styles.gallery}>
         {projects.map((project) => (
           <Link key={project.slug} href={`/work/${project.slug}`} className={styles.project} data-project-link={project.slug} data-work-reveal>
