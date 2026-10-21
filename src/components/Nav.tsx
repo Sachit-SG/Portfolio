@@ -52,7 +52,7 @@ export default function Nav() {
     >
       <a
         href="#top"
-        className="font-mono text-base tracking-tight"
+        className="font-display text-base font-semibold tracking-[-0.02em]"
       >
         Sachit Ghimire
       </a>

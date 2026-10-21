@@ -50,7 +50,7 @@ export default function Contact({ railInset = true }: { railInset?: boolean }) {
             <ArrowUpRight aria-hidden="true" className="mt-2 h-[0.55em] w-[0.55em] shrink-0 stroke-[1.6]" />
           </h2>
           <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-ink">
-            Open to AI automation and full-stack roles, remote or Kathmandu-based.
+            Open to full-stack engineering and workflow automation roles, remote or Kathmandu-based.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a href={`mailto:${EMAIL}`} className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-signal px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-ultra focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
